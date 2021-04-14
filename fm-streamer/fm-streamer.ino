@@ -18,87 +18,26 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-extern "C" {
-#include "user_interface.h"
-}
 
 #include <assert.h>
 #include <Arduino.h>
 #include <Adafruit_Si4713.h>
 #include <ESP8266WiFi.h>
 #include <Wire.h>
-#include "AudioFileSourceICYStream.h"
-#include "AudioFileSourceBuffer.h"
-#include "AudioGeneratorMP3.h"
-#include "AudioOutputI2S.h"
 #include "arduino_secrets.h"
+#include "internet_stream.h"
 
-const char* ssid = SECRET_WIFI_SSID;
-const char* password = SECRET_WIFI_PASS;
+extern const char* WIFI_SSID;
+extern const char* WIFI_PASSWORD;
 
 const char *URL="http://streams.kqed.org/kqedradio";
-//const char *URL="http://kvbstreams.dyndns.org:8000/wkvi-am";
-
-const uint AUDIO_STREAM_BUFFER_BYTES = 10240;
-
-AudioGeneratorMP3 *mp3;
-AudioFileSourceICYStream *file;
-AudioFileSourceBuffer *buff;
-AudioOutputI2S *out;
-
-
 
 ///////// RADIO STUFF
-
-#define _BV(n) (1 << n)
 #define RESETPIN 12
 #define FMSTATION 8810      // 10230 == 102.30 MHz
 Adafruit_Si4713 radio = Adafruit_Si4713(RESETPIN);
 
-
-
-
-
-
-// Called when a metadata event occurs (i.e. an ID3 tag, an ICY block, etc.
-void MDCallback(void *cbData, const char *type, bool isUnicode, const char *string) {
-    const char *ptr = reinterpret_cast<const char *>(cbData);
-    (void) isUnicode; // Punt this ball for now
-    // Note that the type and string may be in PROGMEM, so copy them to RAM for printf
-    char s1[32], s2[64];
-    strncpy_P(s1, type, sizeof(s1));
-    s1[sizeof(s1)-1]=0;
-    strncpy_P(s2, string, sizeof(s2));
-    s2[sizeof(s2)-1]=0;
-    Serial.printf("METADATA(%s) '%s' = '%s'\r\n", ptr, s1, s2);
-    Serial.flush();
-}
-
-// Called when there's a warning or error (like a buffer underflow or decode hiccup)
-void StatusCallback(void *cbData, int code, const char *string) {
-    const char *ptr = reinterpret_cast<const char *>(cbData);
-    // Note that the string may be in PROGMEM, so copy it to RAM for printf
-    char s1[64];
-    strncpy_P(s1, string, sizeof(s1));
-    s1[sizeof(s1)-1]=0;
-    Serial.printf("STATUS(%s) '%d' = '%s'\r\n", ptr, code, s1);
-    Serial.flush();
-}
-
-void StartStream() {
-    delete file;
-    delete buff;
-    delete out;
-    delete mp3;
-    file = new AudioFileSourceICYStream(URL);
-    file->RegisterMetadataCB(MDCallback, (void*)"ICY");
-    buff = new AudioFileSourceBuffer(file, AUDIO_STREAM_BUFFER_BYTES);
-    buff->RegisterStatusCB(StatusCallback, (void*)"buffer");
-    out = new AudioOutputI2S();
-    mp3 = new AudioGeneratorMP3();
-    mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
-    mp3->begin(buff, out);
-}
+InternetStream *stream;
 
 void setup()
 {
@@ -115,19 +54,18 @@ void setup()
     WiFi.softAPdisconnect(true);
     WiFi.mode(WIFI_STA);
 
-    WiFi.begin(ssid, password);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
     // Try forever
     while (WiFi.status() != WL_CONNECTED) {
         Serial.printf("...");
         delay(1000);
     }
-    Serial.printf("\r\nConnected to WiFi network: \"%s\"\r\n", ssid);
+    Serial.printf("\r\nConnected to WiFi network: \"%s\"\r\n", WIFI_SSID);
 
-    audioLogger = &Serial;
-    StartStream();
+    // audioLogger = &Serial;
 
-
+    stream = new InternetStream(URL);
 
 
     if(!radio.begin()) {  // begin with address 0x63 (CS high default)
@@ -166,12 +104,11 @@ void loop()
 {
     static int lastms = 0;
 
-    if (mp3->isRunning()) {
+    if (stream->DoStream()) {
         if (millis()-lastms > 1000) {
             lastms = millis();
             Serial.printf("Running for %d ms...\r\n", lastms);
             Serial.flush();
-
 
             radio.readASQ();
             Serial.print("\tCurr ASQ: 0x");
@@ -180,10 +117,10 @@ void loop()
             Serial.println(radio.currInLevel);
         }
         delay(10);
-        if (!mp3->loop()) mp3->stop();
     } else {
         delay(1000);
         Serial.println("\r\nStreaming crapped out, starting over again...");
-        StartStream();
+        delete stream;
+        stream = new InternetStream(URL);
     }
 }
