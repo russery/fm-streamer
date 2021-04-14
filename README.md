@@ -16,5 +16,3 @@ Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SS
 
 TODO:
 Script to update paths in arduino-cli.yaml
-
-
