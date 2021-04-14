@@ -7,7 +7,7 @@ CORE ?= esp8266:esp8266
 BOARD_TYPE ?= $(CORE):nodemcuv2
 BOARD_OPTIONS ?= :xtal=160
 PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json" # Add extra packages in comma-separated list
-LIBRARIES ?= "ESP8266Audio@1.9.0" # Add extra libraries with spaces between them
+LIBRARIES ?= "ESP8266Audio@1.9.0" "Adafruit Si4713 Library" # Add extra libraries with spaces between them
 
 PROJECT_BASE = fm-streamer
 PROJECT ?= fm-streamer

@@ -24,7 +24,9 @@ extern "C" {
 
 #include <assert.h>
 #include <Arduino.h>
+#include <Adafruit_Si4713.h>
 #include <ESP8266WiFi.h>
+#include <Wire.h>
 #include "AudioFileSourceICYStream.h"
 #include "AudioFileSourceBuffer.h"
 #include "AudioGeneratorMP3.h"
@@ -37,12 +39,26 @@ const char* password = SECRET_WIFI_PASS;
 const char *URL="http://streams.kqed.org/kqedradio";
 //const char *URL="http://kvbstreams.dyndns.org:8000/wkvi-am";
 
-const uint AUDIO_STREAM_BUFFER_BYTES = 2048;
+const uint AUDIO_STREAM_BUFFER_BYTES = 10240;
 
 AudioGeneratorMP3 *mp3;
 AudioFileSourceICYStream *file;
 AudioFileSourceBuffer *buff;
 AudioOutputI2S *out;
+
+
+
+///////// RADIO STUFF
+
+#define _BV(n) (1 << n)
+#define RESETPIN 12
+#define FMSTATION 8810      // 10230 == 102.30 MHz
+Adafruit_Si4713 radio = Adafruit_Si4713(RESETPIN);
+
+
+
+
+
 
 // Called when a metadata event occurs (i.e. an ID3 tag, an ICY block, etc.
 void MDCallback(void *cbData, const char *type, bool isUnicode, const char *string) {
@@ -69,7 +85,11 @@ void StatusCallback(void *cbData, int code, const char *string) {
     Serial.flush();
 }
 
-AudioGeneratorMP3* StartStream() {
+void StartStream() {
+    delete file;
+    delete buff;
+    delete out;
+    delete mp3;
     file = new AudioFileSourceICYStream(URL);
     file->RegisterMetadataCB(MDCallback, (void*)"ICY");
     buff = new AudioFileSourceBuffer(file, AUDIO_STREAM_BUFFER_BYTES);
@@ -78,7 +98,6 @@ AudioGeneratorMP3* StartStream() {
     mp3 = new AudioGeneratorMP3();
     mp3->RegisterStatusCB(StatusCallback, (void*)"mp3");
     mp3->begin(buff, out);
-    return mp3;
 }
 
 void setup()
@@ -106,7 +125,40 @@ void setup()
     Serial.printf("\r\nConnected to WiFi network: \"%s\"\r\n", ssid);
 
     audioLogger = &Serial;
-    mp3 = StartStream();
+    StartStream();
+
+
+
+
+    if(!radio.begin()) {  // begin with address 0x63 (CS high default)
+        Serial.println("Ahhhh crap couldn't find the radio!!");
+        while(true);
+    }
+
+    Serial.print("\nSet TX power");
+    radio.setTXpower(115);  // dBuV, 88-115 max
+
+    Serial.print("\nTuning into ");
+    Serial.print(FMSTATION/100);
+    Serial.print('.');
+    Serial.println(FMSTATION % 100);
+    radio.tuneFM(FMSTATION); // 102.3 mhz
+
+    // This will tell you the status in case you want to read it from the chip
+    radio.readTuneStatus();
+    Serial.print("\tCurr freq: ");
+    Serial.println(radio.currFreq);
+    Serial.print("\tCurr freqdBuV:");
+    Serial.println(radio.currdBuV);
+    Serial.print("\tCurr ANTcap:");
+    Serial.println(radio.currAntCap);
+
+    // begin the RDS/RDBS transmission
+    radio.beginRDS();
+    radio.setRDSstation("AdaRadio");
+    radio.setRDSbuffer( "Adafruit g0th Radio!");
+
+    Serial.println("RDS on!");
 }
 
 
@@ -119,12 +171,19 @@ void loop()
             lastms = millis();
             Serial.printf("Running for %d ms...\r\n", lastms);
             Serial.flush();
+
+
+            radio.readASQ();
+            Serial.print("\tCurr ASQ: 0x");
+            Serial.println(radio.currASQ, HEX);
+            Serial.print("\tCurr InLevel:");
+            Serial.println(radio.currInLevel);
         }
         delay(10);
         if (!mp3->loop()) mp3->stop();
     } else {
         delay(1000);
         Serial.println("\r\nStreaming crapped out, starting over again...");
-        mp3 = StartStream();
+        StartStream();
     }
 }
