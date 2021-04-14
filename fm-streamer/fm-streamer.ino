@@ -18,6 +18,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+extern "C" {
+#include "user_interface.h"
+}
+
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include "AudioFileSourceICYStream.h"
@@ -66,6 +70,7 @@ void StatusCallback(void *cbData, int code, const char *string)
 
 void setup()
 {
+  system_update_cpu_freq(160);
   Serial.begin(115200);
   delay(1000);
   Serial.println("Connecting to WiFi");
