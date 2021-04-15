@@ -33,7 +33,7 @@ public:
 	InternetStream(const char* stream_url, uint buffer_size_bytes = AUDIO_SOURCE_BUFFER_BYTES);
 	~InternetStream();
 
-	bool DoStream(void);
+	bool Loop(void);
 
 private:
 	AudioGeneratorMP3 *mp3_;

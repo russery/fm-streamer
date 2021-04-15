@@ -76,6 +76,6 @@ InternetStream::~InternetStream(){
 	delete mp3_;
 }
 
-bool InternetStream::DoStream(void){
+bool InternetStream::Loop(void){
 	return mp3_->loop();
 }

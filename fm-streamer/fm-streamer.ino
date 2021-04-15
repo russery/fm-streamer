@@ -26,6 +26,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <Wire.h>
 #include "arduino_secrets.h"
 #include "internet_stream.h"
+#include "webpage.h"
 
 extern const char* WIFI_SSID;
 extern const char* WIFI_PASSWORD;
@@ -38,89 +39,104 @@ const char *URL="http://streams.kqed.org/kqedradio";
 Adafruit_Si4713 radio = Adafruit_Si4713(RESETPIN);
 
 InternetStream *stream;
+WebPage webpage = WebPage();
 
-void setup()
-{
-    system_update_cpu_freq(160);
-    Serial.begin(115200);
-    delay(1000);
+enum LoopState {ST_WIFI_CONNECT, ST_STREAM_START, ST_STREAM_CONNECTING, ST_STREAMING} state_ = ST_WIFI_CONNECT;
 
-    // Check clock freq:
-    int clk_freq = ESP.getCpuFreqMHz();
-    assert(clk_freq == 160); // Clock Frequency must be 160MHz - make sure this is configured in Arduino IDE or CLI
 
-    Serial.println("\r\nConnecting to WiFi");
-    WiFi.disconnect();
-    WiFi.softAPdisconnect(true);
-    WiFi.mode(WIFI_STA);
-
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    // Try forever
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.printf("...");
-        delay(1000);
+void PrintStatus_(void) {
+    Serial.printf("\r\n\n\n");
+    //Serial.printf("\033[2J");
+    Serial.printf("\r\n-----------------------------------");
+    Serial.printf("\r\n        fm-streamer status");
+    Serial.printf("\r\n-----------------------------------");
+    uint sec = millis() / 1000;
+    Serial.printf("\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+    Serial.printf("\r\nSSID: \"%s\"", WiFi.SSID().c_str());
+    Serial.printf("\r\nIP Address: %s", WiFi.localIP().toString().c_str());
+    Serial.printf("\r\nStatus: ");
+    switch (state_){
+        case ST_WIFI_CONNECT: Serial.printf("Connecting to Wifi"); break;
+        case ST_STREAM_START: Serial.printf("Starting internet stream"); break;
+        case ST_STREAM_CONNECTING: Serial.printf("Connecting to internet stream"); break;
+        case ST_STREAMING: Serial.printf("Streaming from internet");break;
     }
-    Serial.printf("\r\nConnected to WiFi network: \"%s\"\r\n", WIFI_SSID);
-
-    // audioLogger = &Serial;
-
-    stream = new InternetStream(URL);
-
-
-    if(!radio.begin()) {  // begin with address 0x63 (CS high default)
-        Serial.println("Ahhhh crap couldn't find the radio!!");
-        while(true);
-    }
-
-    Serial.print("\nSet TX power");
-    radio.setTXpower(115);  // dBuV, 88-115 max
-
-    Serial.print("\nTuning into ");
-    Serial.print(FMSTATION/100);
-    Serial.print('.');
-    Serial.println(FMSTATION % 100);
-    radio.tuneFM(FMSTATION); // 102.3 mhz
-
-    // This will tell you the status in case you want to read it from the chip
-    radio.readTuneStatus();
-    Serial.print("\tCurr freq: ");
-    Serial.println(radio.currFreq);
-    Serial.print("\tCurr freqdBuV:");
-    Serial.println(radio.currdBuV);
-    Serial.print("\tCurr ANTcap:");
-    Serial.println(radio.currAntCap);
-
-    // begin the RDS/RDBS transmission
-    radio.beginRDS();
-    radio.setRDSstation("AdaRadio");
-    radio.setRDSbuffer( "Adafruit g0th Radio!");
-
-    Serial.println("RDS on!");
 }
 
 
-void loop()
-{
-    static int lastms = 0;
+void setup() {
+    Serial.begin(115200);
 
-    if (stream->DoStream()) {
-        if (millis()-lastms > 1000) {
-            lastms = millis();
-            Serial.printf("Running for %d ms...\r\n", lastms);
-            Serial.flush();
+    // Check clock freq:
+    assert(ESP.getCpuFreqMHz() == 160); // Clock Frequency must be 160MHz - make sure this is configured in Arduino IDE or CLI
 
-            radio.readASQ();
-            Serial.print("\tCurr ASQ: 0x");
-            Serial.println(radio.currASQ, HEX);
-            Serial.print("\tCurr InLevel:");
-            Serial.println(radio.currInLevel);
-        }
-        delay(10);
-    } else {
-        delay(1000);
-        Serial.println("\r\nStreaming crapped out, starting over again...");
-        delete stream;
-        stream = new InternetStream(URL);
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+    //Start up the FM Radio
+    bool radio_started = radio.begin();
+    assert(radio_started);
+
+    //Serial.print("\nSet TX power");
+    radio.setTXpower(115);  // dBuV, 88-115 max
+
+    // Serial.print("\nTuning into ");
+    // Serial.print(FMSTATION/100);
+    // Serial.print('.');
+    // Serial.println(FMSTATION % 100);
+    radio.tuneFM(FMSTATION); // 102.3 mhz
+
+    // This will tell you the status in case you want to read it from the chip
+    // radio.readTuneStatus();
+    // Serial.print("\tCurr freq: ");
+    // Serial.println(radio.currFreq);
+    // Serial.print("\tCurr freqdBuV:");
+    // Serial.println(radio.currdBuV);
+    // Serial.print("\tCurr ANTcap:");
+    // Serial.println(radio.currAntCap);
+
+    // // begin the RDS/RDBS transmission
+    // radio.beginRDS();
+    // radio.setRDSstation("AdaRadio");
+    // radio.setRDSbuffer( "Adafruit g0th Radio!");
+    webpage.Start();
+}
+
+
+void loop() {
+    static int last_print_ms = 0;
+    bool stream_is_running;
+
+    switch (state_){
+        case ST_WIFI_CONNECT:
+            if(WiFi.status() == WL_CONNECTED){
+                state_ = ST_STREAM_START;
+            }
+            break;
+        case ST_STREAM_START:
+            stream = new InternetStream(URL, 10240);
+            state_ = ST_STREAM_CONNECTING;
+            break;
+        case ST_STREAM_CONNECTING:
+            stream_is_running = stream->Loop();
+            if (stream_is_running){
+                state_ = ST_STREAMING;
+            }
+        case ST_STREAMING:
+            stream_is_running = stream->Loop();
+            if (!stream_is_running){
+                delete stream;
+                state_ = ST_STREAM_START;
+            }
+            break;
     }
+
+    if (state_ != ST_WIFI_CONNECT) {
+        webpage.Loop();
+    }
+
+    if(millis()-last_print_ms > 500) {
+        last_print_ms = millis();
+        PrintStatus_();
+    }
+    delay(10);
 }
