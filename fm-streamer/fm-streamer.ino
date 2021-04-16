@@ -75,7 +75,7 @@ uint curr_station = 0;
 
 AsyncWebServer webserver = AsyncWebServer(80);
 FmRadio fm_radio = FmRadio();
-InternetStream stream = InternetStream(10240, &fm_radio.i2s_input);
+InternetStream stream = InternetStream(4096, &fm_radio.i2s_input);
 
 String webpage_processor(const String& var){
     if (var == "ST_1_C") {
