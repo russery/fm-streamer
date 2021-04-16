@@ -50,7 +50,7 @@ void StatusCallback(void *cbData, int code, const char *string) {
 
 } // namespace
 
-InternetStream::InternetStream(const char* stream_url, uint buffer_size_bytes) {
+InternetStream::InternetStream(const char* stream_url, uint buffer_size_bytes, AudioOutputI2S *i2s_sink) {
     file_ = new AudioFileSourceICYStream(stream_url);
     file_->RegisterMetadataCB(MetaDataCallback, (void*)"stream");
     file_->RegisterStatusCB(StatusCallback, (void*)"stream");
@@ -59,20 +59,15 @@ InternetStream::InternetStream(const char* stream_url, uint buffer_size_bytes) {
     buff_->RegisterMetadataCB(MetaDataCallback, (void*)"buffer");
     buff_->RegisterStatusCB(StatusCallback, (void*)"buffer");
 
-    out_ = new AudioOutputI2S();
-    out_->RegisterMetadataCB(MetaDataCallback, (void*)"I2S");
-    out_->RegisterStatusCB(StatusCallback, (void*)"I2S");
-
     mp3_ = new AudioGeneratorMP3();
     mp3_->RegisterMetadataCB(MetaDataCallback, (void*)"mp3");
     mp3_->RegisterStatusCB(StatusCallback, (void*)"mp3");
-    mp3_->begin(buff_, out_);
+    mp3_->begin(buff_, i2s_sink);
 }
 
 InternetStream::~InternetStream(){
 	delete file_;
 	delete buff_;
-	delete out_;
 	delete mp3_;
 }
 

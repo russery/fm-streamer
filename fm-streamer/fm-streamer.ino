@@ -18,51 +18,86 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 #include <assert.h>
 #include <Arduino.h>
-#include <Adafruit_Si4713.h>
 #include <ESP8266WiFi.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 #include <Wire.h>
 #include "arduino_secrets.h"
 #include "internet_stream.h"
-#include "webpage.h"
+#include "fm_radio.h"
+
+// TODO - preprocessor to build this automatically and eliminate hard-coded values?
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html><head>
+  <title>FM Streamer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+  </style>
+  </head>
+  <body>
+    <h2>FM Streamer</h2>
+    <form action="/update">
+      <input type="radio" id="station1" name="station" value="1"%ST_1_C%>
+      <label for="station1">KQED</label><br>
+      <input type="radio" id="station2" name="station" value="2"%ST_2_C%>
+      <label for="station2">Radio RST</label><br>
+      <input type="radio" id="station3" name="station" value="3"ST_3_C%>
+      <label for="station3">NJOY</label><br>
+      <br>
+      <label for="freq">Radio Frequency (MHz):</label>
+      <input type="number" id="freq" name="freq" min="88.0" max="108.0" step="0.1" value="%FREQ%"><br>
+      <label for="txpower">Transmit Power (dBuV)</label>
+      <input type="range" id="txpower" name="txpower" min="88" max="115" step="1", value="%POW%"><span id="txpower_val">asdf</span><br>
+      <br>
+      <input type="submit" value="Update">
+    </form>
+    <script type="text/javascript">
+      var slider = document.getElementById("txpower");
+      var output = document.getElementById("txpower_val");
+      output.innerHTML = slider.value;
+      slider.oninput = function() {
+        output.innerHTML = this.value;
+      }
+    </script>
+  </body>
+</html>
+)rawliteral";
 
 extern const char* WIFI_SSID;
 extern const char* WIFI_PASSWORD;
 
-const char *URL="http://streams.kqed.org/kqedradio";
+typedef struct { const char URL[128]; const char Name[32]; } Stream_t;
+const Stream_t StationList[] PROGMEM = {
+    {{.URL="http://streams.kqed.org/kqedradio"}, {.Name="KQED"}},
+    {{.URL="http://mms.hoerradar.de:8000/rst128k"}, {.Name="Radio RST"}},
+    {{.URL="http://ndr-edge-206c.fra-lg.cdn.addradio.net/ndr/njoy/live/mp3/128/stream.mp3"}, {.Name="NJOY"}}
+};
+const uint NUM_STATIONS = sizeof(StationList) / sizeof(Stream_t);
+uint curr_station = 0;
 
-///////// RADIO STUFF
-#define RESETPIN 12
-#define FMSTATION 8810      // 10230 == 102.30 MHz
-Adafruit_Si4713 radio = Adafruit_Si4713(RESETPIN);
-
-InternetStream *stream;
-WebPage webpage = WebPage();
-
-enum LoopState {ST_WIFI_CONNECT, ST_STREAM_START, ST_STREAM_CONNECTING, ST_STREAMING} state_ = ST_WIFI_CONNECT;
-
-
-void PrintStatus_(void) {
-    Serial.printf("\r\n\n\n");
-    //Serial.printf("\033[2J");
-    Serial.printf("\r\n-----------------------------------");
-    Serial.printf("\r\n        fm-streamer status");
-    Serial.printf("\r\n-----------------------------------");
-    uint sec = millis() / 1000;
-    Serial.printf("\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
-    Serial.printf("\r\nSSID: \"%s\"", WiFi.SSID().c_str());
-    Serial.printf("\r\nIP Address: %s", WiFi.localIP().toString().c_str());
-    Serial.printf("\r\nStatus: ");
-    switch (state_){
-        case ST_WIFI_CONNECT: Serial.printf("Connecting to Wifi"); break;
-        case ST_STREAM_START: Serial.printf("Starting internet stream"); break;
-        case ST_STREAM_CONNECTING: Serial.printf("Connecting to internet stream"); break;
-        case ST_STREAMING: Serial.printf("Streaming from internet");break;
+String webpage_processor(const String& var){
+    if (var == "ST_1_C") {
+        return (0 == curr_station) ? " checked" : "";
+    } else if (var == "ST_2_C") {
+        return (1 == curr_station) ? " checked" : "";
+    } else if (var == "ST_3_C") {
+        return (2 == curr_station) ? " checked" : "";
+    } else if (var == "FREQ") {
+        return "103.2";
+    } else if (var == "POW") {
+        return "101";
     }
+    return String();
 }
 
+
+InternetStream *stream;
+AsyncWebServer webserver = AsyncWebServer(80);
+FmRadio fm_radio = FmRadio();
 
 void setup() {
     Serial.begin(115200);
@@ -70,40 +105,52 @@ void setup() {
     // Check clock freq:
     assert(ESP.getCpuFreqMHz() == 160); // Clock Frequency must be 160MHz - make sure this is configured in Arduino IDE or CLI
 
+    // Start connecting to WiFi
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-    //Start up the FM Radio
-    bool radio_started = radio.begin();
-    assert(radio_started);
 
-    //Serial.print("\nSet TX power");
-    radio.setTXpower(115);  // dBuV, 88-115 max
+    // ----------------------------------------
+    // Server setup
+    // ----------------------------------------
+    // Set route for index.html:
+    webserver.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/html", index_html, webpage_processor);
+    });
 
-    // Serial.print("\nTuning into ");
-    // Serial.print(FMSTATION/100);
-    // Serial.print('.');
-    // Serial.println(FMSTATION % 100);
-    radio.tuneFM(FMSTATION); // 102.3 mhz
+    // Set route for "/update" GET call:
+    webserver.on("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        String inputMessage;
+        String inputParam;
+        // GET input1 value on <ESP_IP>/update?state=<inputMessage>
+        if (request->hasParam(F("station"))) {
+            uint station_ind = (uint)request->getParam(F("station"))->value().toInt();
+            // TODO change stream URL
+        } else if (request->hasParam(F("freq"))) {
+            uint freq_khz = (uint)(request->getParam(F("freq"))->value().toFloat() * 1000);
+            fm_radio.SetFreq(freq_khz);
+        } else if (request->hasParam(F("txpower"))) {
+            uint txpower_dbuv = (uint)request->getParam(F("txpower"))->value().toInt();
+            fm_radio.SetTxPower(txpower_dbuv);
+        } else {
+            inputMessage = F("No message sent");
+            inputParam = F("none");
+        }
+        request->send_P(200, "text/html", index_html, webpage_processor);
+    });
+    webserver.begin();
 
-    // This will tell you the status in case you want to read it from the chip
-    // radio.readTuneStatus();
-    // Serial.print("\tCurr freq: ");
-    // Serial.println(radio.currFreq);
-    // Serial.print("\tCurr freqdBuV:");
-    // Serial.println(radio.currdBuV);
-    // Serial.print("\tCurr ANTcap:");
-    // Serial.println(radio.currAntCap);
-
-    // // begin the RDS/RDBS transmission
-    // radio.beginRDS();
-    // radio.setRDSstation("AdaRadio");
-    // radio.setRDSbuffer( "Adafruit g0th Radio!");
-    webpage.Start();
+    fm_radio.Start();
+    fm_radio.SetTxPower(100);
+    fm_radio.SetVolume(80);
+    fm_radio.SetFreq(88100);
 }
 
 
 void loop() {
-    static int last_print_ms = 0;
+    static enum LoopState {
+        ST_WIFI_CONNECT, ST_STREAM_START, ST_STREAM_CONNECTING, ST_STREAMING
+    } state_ = ST_WIFI_CONNECT;
+    static uint last_print_ms = 0;
     bool stream_is_running;
 
     switch (state_){
@@ -113,7 +160,7 @@ void loop() {
             }
             break;
         case ST_STREAM_START:
-            stream = new InternetStream(URL, 10240);
+            stream = new InternetStream(StationList[curr_station].URL, 2048, &fm_radio.i2s_input);
             state_ = ST_STREAM_CONNECTING;
             break;
         case ST_STREAM_CONNECTING:
@@ -130,13 +177,24 @@ void loop() {
             break;
     }
 
-    if (state_ != ST_WIFI_CONNECT) {
-        webpage.Loop();
-    }
-
     if(millis()-last_print_ms > 500) {
         last_print_ms = millis();
-        PrintStatus_();
+            Serial.printf("\r\n\n\n");
+            //Serial.printf("\033[2J");
+            Serial.print(F("\r\n-----------------------------------"));
+            Serial.print(F("\r\n        fm-streamer status"));
+            Serial.print(F("\r\n-----------------------------------"));
+            uint sec = millis() / 1000;
+            Serial.printf("\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+            Serial.printf("\r\nSSID: \"%s\"", WiFi.SSID().c_str());
+            Serial.printf("\r\nIP Address: %s", WiFi.localIP().toString().c_str());
+            Serial.print(F("\r\nStatus: "));
+            switch (state_){
+                case ST_WIFI_CONNECT: Serial.print(F("Connecting to Wifi")); break;
+                case ST_STREAM_START: Serial.print(F("Starting internet stream")); break;
+                case ST_STREAM_CONNECTING: Serial.print(F("Connecting to internet stream")); break;
+                case ST_STREAMING: Serial.print(F("Streaming from internet"));break;
+            }
     }
     delay(10);
 }

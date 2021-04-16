@@ -1,6 +1,5 @@
 /*
-Streams an internet radio station over FM radio. This is accomplished
-with an ESP8266 bridging audio to an I2S-enabled FM transmitter IC.
+Wrapper for the Adafruit Si4713 library and I2S audio output to radio.
 
 Copyright (C) 2021  Robert Ussery
 
@@ -18,27 +17,35 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef __INTERNET_STREAM_H
-#define __INTERNET_STREAM_H
+#ifndef __FM_RADIO_H
+#define __FM_RADIO_H
 
-#include <AudioFileSourceICYStream.h>
-#include <AudioFileSourceBuffer.h>
 #include <AudioOutputI2S.h>
-#include <AudioGeneratorMP3.h>
+#include <Adafruit_Si4713.h>
 
-class InternetStream {
+// Pin definition - move to BSP someday?
+const uint RESETPIN = 12;
+
+class FmRadio
+{
 public:
-	InternetStream(const char* stream_url, uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
-	~InternetStream();
+	AudioOutputI2S i2s_input = AudioOutputI2S();
 
-	bool Loop(void);
+	void Start(void);
+	void SetTxPower(uint percent);
+	uint GetTxPower(void);
+	void SetVolume(uint percent);
+	bool DoAutoSetVolume(void);
+	void SetFreq(uint khz);
+	uint GetFreq(void);
+	void PowerDown(void);
+	void SetRdsText(char *text);
 
 private:
-	AudioGeneratorMP3 *mp3_;
-	AudioFileSourceICYStream *file_;
-	AudioFileSourceBuffer *buff_;
-	AudioOutputI2S *out_;
+	Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
+	uint freq_khz_ = 8810;
+	uint txpower_dbuv_ = 88;
+	uint vol_percent_ = 80;
 };
 
-
-#endif // __INTERNET_STREAM_H
+#endif // __FM_RADIO_H

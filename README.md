@@ -14,4 +14,4 @@ Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SS
 TODO:
 - Serve Web page to change settings
 - Handle board LED
--
+- Add volume to webpage
