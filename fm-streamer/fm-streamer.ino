@@ -45,24 +45,18 @@ const char index_html[] PROGMEM = R"rawliteral(
       <label for="station1">KQED</label><br>
       <input type="radio" id="station2" name="station" value="2"%ST_2_C%>
       <label for="station2">Radio RST</label><br>
-      <input type="radio" id="station3" name="station" value="3"ST_3_C%>
+      <input type="radio" id="station3" name="station" value="3"%ST_3_C%>
       <label for="station3">NJOY</label><br>
       <br>
       <label for="freq">Radio Frequency (MHz):</label>
       <input type="number" id="freq" name="freq" min="88.0" max="108.0" step="0.1" value="%FREQ%"><br>
-      <label for="txpower">Transmit Power (dBuV)</label>
-      <input type="range" id="txpower" name="txpower" min="88" max="115" step="1", value="%POW%"><span id="txpower_val">asdf</span><br>
+      <label for="txpower">Transmit Power</label>
+      <input type="range" id="txpower" name="txpower" min="0" max="100" step="1", value="%POW%"><br>
+      <label for="txpower">Audio Volume</label>
+      <input type="range" id="volume" name="volume" min="0" max="100" step="1", value="%VOL%"><br>
       <br>
       <input type="submit" value="Update">
     </form>
-    <script type="text/javascript">
-      var slider = document.getElementById("txpower");
-      var output = document.getElementById("txpower_val");
-      output.innerHTML = slider.value;
-      slider.oninput = function() {
-        output.innerHTML = this.value;
-      }
-    </script>
   </body>
 </html>
 )rawliteral";
@@ -79,25 +73,26 @@ const Stream_t StationList[] PROGMEM = {
 const uint NUM_STATIONS = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
 
+AsyncWebServer webserver = AsyncWebServer(80);
+FmRadio fm_radio = FmRadio();
+InternetStream stream = InternetStream(10240, &fm_radio.i2s_input);
+
 String webpage_processor(const String& var){
     if (var == "ST_1_C") {
-        return (0 == curr_station) ? " checked" : "";
+        return (0 == curr_station) ? F(" checked") : String();
     } else if (var == "ST_2_C") {
-        return (1 == curr_station) ? " checked" : "";
+        return (1 == curr_station) ? F(" checked") : String();
     } else if (var == "ST_3_C") {
-        return (2 == curr_station) ? " checked" : "";
+        return (2 == curr_station) ? F(" checked") : String();
     } else if (var == "FREQ") {
-        return "103.2";
+        return String(float(fm_radio.GetFreq()) / 1000.0f, 2);
     } else if (var == "POW") {
-        return "101";
+        return String(fm_radio.GetTxPower());
+    } else if (var == "VOL") {
+        return String(fm_radio.GetVolume());
     }
     return String();
 }
-
-
-InternetStream *stream;
-AsyncWebServer webserver = AsyncWebServer(80);
-FmRadio fm_radio = FmRadio();
 
 void setup() {
     Serial.begin(115200);
@@ -114,7 +109,7 @@ void setup() {
     // ----------------------------------------
     // Set route for index.html:
     webserver.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send_P(200, "text/html", index_html, webpage_processor);
+        request->send_P(200, F("text/html"), index_html, webpage_processor);
     });
 
     // Set route for "/update" GET call:
@@ -124,13 +119,17 @@ void setup() {
         // GET input1 value on <ESP_IP>/update?state=<inputMessage>
         if (request->hasParam(F("station"))) {
             uint station_ind = (uint)request->getParam(F("station"))->value().toInt();
+            curr_station = (uint)request->getParam(F("txpower"))->value().toInt();
             // TODO change stream URL
         } else if (request->hasParam(F("freq"))) {
             uint freq_khz = (uint)(request->getParam(F("freq"))->value().toFloat() * 1000);
             fm_radio.SetFreq(freq_khz);
         } else if (request->hasParam(F("txpower"))) {
-            uint txpower_dbuv = (uint)request->getParam(F("txpower"))->value().toInt();
-            fm_radio.SetTxPower(txpower_dbuv);
+            uint txpower = (uint)request->getParam(F("txpower"))->value().toInt();
+            fm_radio.SetTxPower(txpower);
+        } else if (request->hasParam(F("volume"))) {
+            uint volume = (uint)request->getParam(F("volume"))->value().toInt();
+            fm_radio.SetVolume(volume);
         } else {
             inputMessage = F("No message sent");
             inputParam = F("none");
@@ -160,18 +159,17 @@ void loop() {
             }
             break;
         case ST_STREAM_START:
-            stream = new InternetStream(StationList[curr_station].URL, 2048, &fm_radio.i2s_input);
+            stream.OpenUrl(StationList[curr_station].URL);
             state_ = ST_STREAM_CONNECTING;
             break;
         case ST_STREAM_CONNECTING:
-            stream_is_running = stream->Loop();
+            stream_is_running = stream.Loop();
             if (stream_is_running){
                 state_ = ST_STREAMING;
             }
         case ST_STREAMING:
-            stream_is_running = stream->Loop();
+            stream_is_running = stream.Loop();
             if (!stream_is_running){
-                delete stream;
                 state_ = ST_STREAM_START;
             }
             break;
@@ -179,15 +177,15 @@ void loop() {
 
     if(millis()-last_print_ms > 500) {
         last_print_ms = millis();
-            Serial.printf("\r\n\n\n");
-            //Serial.printf("\033[2J");
+            Serial.print(F("\r\n\n\n"));
+            Serial.print(F("\033[2J"));
             Serial.print(F("\r\n-----------------------------------"));
             Serial.print(F("\r\n        fm-streamer status"));
             Serial.print(F("\r\n-----------------------------------"));
             uint sec = millis() / 1000;
-            Serial.printf("\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
-            Serial.printf("\r\nSSID: \"%s\"", WiFi.SSID().c_str());
-            Serial.printf("\r\nIP Address: %s", WiFi.localIP().toString().c_str());
+            Serial.printf_P((PGM_P)"\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+            Serial.printf_P((PGM_P)"\r\nSSID: \"%s\"", WiFi.SSID().c_str());
+            Serial.printf_P((PGM_P)"\r\nIP Address: %s", WiFi.localIP().toString().c_str());
             Serial.print(F("\r\nStatus: "));
             switch (state_){
                 case ST_WIFI_CONNECT: Serial.print(F("Connecting to Wifi")); break;
@@ -195,6 +193,9 @@ void loop() {
                 case ST_STREAM_CONNECTING: Serial.print(F("Connecting to internet stream")); break;
                 case ST_STREAMING: Serial.print(F("Streaming from internet"));break;
             }
+            Serial.printf_P((PGM_P)"\r\nStation: %s", StationList[curr_station].Name);
+            Serial.printf_P((PGM_P)"\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%",
+                float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(), fm_radio.GetVolume());
     }
     delay(10);
 }

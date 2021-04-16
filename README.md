@@ -12,6 +12,6 @@ Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SS
 
 
 TODO:
-- Serve Web page to change settings
+- Change webserver back from asynchronous? This may fix memory issues
 - Handle board LED
 - Add volume to webpage

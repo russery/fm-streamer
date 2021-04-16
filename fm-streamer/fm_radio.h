@@ -35,6 +35,7 @@ public:
 	void SetTxPower(uint percent);
 	uint GetTxPower(void);
 	void SetVolume(uint percent);
+	uint GetVolume(void);
 	bool DoAutoSetVolume(void);
 	void SetFreq(uint khz);
 	uint GetFreq(void);
@@ -44,7 +45,7 @@ public:
 private:
 	Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
 	uint freq_khz_ = 8810;
-	uint txpower_dbuv_ = 88;
+	uint txpower_percent_ = 88;
 	uint vol_percent_ = 80;
 };
 

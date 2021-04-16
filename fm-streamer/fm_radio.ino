@@ -36,11 +36,11 @@ void FmRadio::SetTxPower(uint percent){
 	if (percent == 0) dbuv = 0; // Turn off if 0%
 	else dbuv = ((120-88) * percent / 100) + 88; // 88-120dBuV is valid range
 	radio_.setTXpower(dbuv);
-	txpower_dbuv_ = dbuv;
+	txpower_percent_ = percent;
 }
 
 uint FmRadio::GetTxPower(void){
-	return txpower_dbuv_;
+	return txpower_percent_;
 }
 
 void FmRadio::SetVolume(uint percent){
@@ -50,7 +50,11 @@ void FmRadio::SetVolume(uint percent){
 	vol_percent_ = percent;
 }
 
-bool DoAutoSetVolume(void){
+uint FmRadio::GetVolume(void){
+	return vol_percent_;
+}
+
+bool FmRadio::DoAutoSetVolume(void){
 	// TODO
 	// Read input level at FM radio and adjust I2S volume until it's just below clipping.
 	return true;

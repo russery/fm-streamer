@@ -28,9 +28,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class InternetStream {
 public:
-	InternetStream(const char* stream_url, uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
+	InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
 	~InternetStream();
 
+	void OpenUrl(const char* stream_url);
 	bool Loop(void);
 
 private:
