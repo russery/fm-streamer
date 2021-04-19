@@ -46,7 +46,7 @@ uint FmRadio::GetTxPower(void){
 void FmRadio::SetVolume(uint percent){
 	if (percent > 100) percent = 100; // Saturate at 100%
 	float gain = (float)(4 * percent) / 100.0f; // Gain range is 0-4
-	i2s_input.SetGain(gain);
+  i2s_input.SetGain(gain);
 	vol_percent_ = percent;
 }
 
@@ -64,7 +64,6 @@ void FmRadio::SetFreq(uint khz) {
 	if (khz > 108000) khz = 108000; // Saturate at 108MHz
 	else if (khz < 76000) khz = 76000; // Saturate at 76MHz
 	khz = khz - (khz % 50); // Ensure we're aligned on 50kHz boundaries
-	freq_khz_ = khz;
 	radio_.tuneFM(khz/10); // Despite Adafruit library var name, chip expects units of 10kHz
 	freq_khz_ = khz;
 }

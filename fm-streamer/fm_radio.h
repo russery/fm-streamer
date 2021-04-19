@@ -29,7 +29,7 @@ const uint RESETPIN = 12;
 class FmRadio
 {
 public:
-	AudioOutputI2S i2s_input = AudioOutputI2S();
+	AudioOutputI2S i2s_input;
 
 	void Start(void);
 	void SetTxPower(uint percent);

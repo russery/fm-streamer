@@ -7,6 +7,8 @@ CORE ?= esp8266:esp8266
 BOARD_TYPE ?= $(CORE):nodemcuv2
 BOARD_OPTIONS ?= :xtal=160
 PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json" # Add extra packages in comma-separated list
+LIBRARIES ?= ESP8266Audio@1.9.0 "Adafruit Si4713 Library" # Add extra libraries in a space-separated list
+GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/ESPAsyncTCP
 
 PROJECT_BASE = fm-streamer
 PROJECT ?= fm-streamer
@@ -31,14 +33,13 @@ endif
 all: fm-streamer
 
 config-tools:
+	$(ARDUINO_CLI) cache clean
 	$(ARDUINO_CLI) config init --additional-urls $(PACKAGE_URLS) --overwrite
 	$(ARDUINO_CLI) config set library.enable_unsafe_install true
 	$(ARDUINO_CLI) core update-index
 	$(ARDUINO_CLI) core install $(CORE)
-	$(ARDUINO_CLI) lib install ESP8266Audio@1.9.0
-	$(ARDUINO_CLI) lib install "Adafruit Si4713 Library"
-	$(ARDUINO_CLI) lib install --git-url https://github.com/me-no-dev/ESPAsyncWebServer.git
-	$(ARDUINO_CLI) lib install --git-url https://github.com/me-no-dev/ESPAsyncTCP.git
+	$(ARDUINO_CLI) lib install $(LIBRARIES)
+	$(foreach lib, $(GIT_LIBRARIES), $(ARDUINO_CLI) lib install --git-url $(lib);)
 
 fm-streamer:
 	$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE)$(BOARD_OPTIONS) $(PROJECT_BASE)/$(PROJECT)
