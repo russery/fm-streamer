@@ -59,7 +59,7 @@ const char* MDNS_ADDRESS PROGMEM = "fm-streamer";
 const char* CONFIG_FILE_NAME PROGMEM = "/fm_streamer_config.txt";
 const uint DFT_STATION PROGMEM = 0;
 const uint DFT_FREQ PROGMEM = 88100;
-const uint DFT_POWER PROGMEM = 100;
+const uint DFT_POWER PROGMEM = 90;
 const uint DFT_VOLUME PROGMEM = 80;
 
 typedef struct { const char URL[128]; const char Name[32]; } Stream_t;
@@ -71,19 +71,10 @@ const Stream_t StationList[] PROGMEM = {
 const uint NUM_STATIONS PROGMEM = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
 
-AsyncWebServer webserver(80);
+//AsyncWebServer webserver(80);
 FmRadio fm_radio;
 
-//InternetStream *stream;
-
-//void StartStream(void){
-//    stream = new InternetStream(2048, &(fm_radio.i2s_input));
-//    stream->OpenUrl(StationList[curr_station].URL);
-//}
-
-//void StopStream(void){
-//    delete stream;
-//}
+InternetStream stream = InternetStream(1024, &(fm_radio.i2s_input));
 
 String WebpageProcessor(const String& var){
     if (var == "STATION-LIST") {
@@ -167,9 +158,9 @@ void setup() {
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-    webserver.on("/", ServePage);
-    webserver.onNotFound(ServePage); // Just direct everything to the same page
-    webserver.on("/post", HTTP_POST, HandlePagePost);
+    // webserver.on("/", ServePage);
+    // webserver.onNotFound(ServePage); // Just direct everything to the same page
+    // webserver.on("/post", HTTP_POST, HandlePagePost);
 
     fm_radio.Start();
 
@@ -200,7 +191,7 @@ void loop() {
     switch (state_){
         case ST_WIFI_CONNECT:
             if(WiFi.status() == WL_CONNECTED){
-                webserver.begin();
+                //webserver.begin();
                 mdns_active = MDNS.begin(MDNS_ADDRESS);
                 MDNS.addService("http", "tcp", 80);
                 state_ = ST_STREAM_START;
@@ -208,22 +199,22 @@ void loop() {
             break;
         case ST_STREAM_START:
             MDNS.update();
-            //StartStream();
+            stream.OpenUrl(StationList[curr_station].URL);
             state_ = ST_STREAM_CONNECTING;
             break;
         case ST_STREAM_CONNECTING:
             MDNS.update();
-//            stream_is_running = stream->Loop();
-//            if (stream_is_running){
-//                state_ = ST_STREAMING;
-//            }
+           stream_is_running = stream.Loop();
+           if (stream_is_running){
+               state_ = ST_STREAMING;
+           }
             break;
         case ST_STREAMING:
             MDNS.update();
-//            stream_is_running = stream->Loop();
-//            if (!stream_is_running){
-//                state_ = ST_STREAM_START;
-//            }
+           stream_is_running = stream.Loop();
+           if (!stream_is_running){
+               state_ = ST_STREAM_START;
+           }
             break;
     }
 

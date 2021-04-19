@@ -12,7 +12,5 @@ Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SS
 
 
 TODO:
-- Try sending page from PROGMEM bit by bit, instead of passing whole thing to client.print()
-- Create modes, streamer vs. config server. Deallocate streamer while serving and vice versa. Maybe this'll fix memory issues?
 - Handle board LED
 - Clean up board wiring
