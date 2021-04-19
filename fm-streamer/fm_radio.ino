@@ -24,7 +24,6 @@ void FmRadio::Start(char *station_id){
     assert(radio_started);
     radio_.beginRDS();
     radio_.setRDSstation(station_id);
-    avg_input_level_ = GetInputLevel();
 }
 
 void FmRadio::PowerDown(void){
@@ -56,16 +55,18 @@ uint FmRadio::GetVolume(void){
 }
 
 void FmRadio::DoAutoSetVolume(int target_volume){
+	static float avg_input = target_volume;
 	static float integral_error = 0;
 	static float previous_error = 0;
-	const float K_P = 3.0f;
-	const float K_I = 0.5f;
+	const int AVG_INPUT_CYCLES = 10;
+	const float K_P = 5.0f;
+	const float K_I = 1.0f;
 	const float K_D = 0.0f;
 	const float INT_SAT_VAL = 10.0f;
 
-	avg_input_level_ = (((AVG_INPUT_CYCLES_-1) * avg_input_level_) + GetInputLevel()) / AVG_INPUT_CYCLES_;
+	avg_input = (((AVG_INPUT_CYCLES-1) * avg_input) + GetInputLevel()) / AVG_INPUT_CYCLES;
 
-	float error = target_volume - avg_input_level_;
+	float error = target_volume - avg_input;
 
 	// Calculate integral and saturate:
 	integral_error = integral_error + error;
@@ -81,7 +82,7 @@ void FmRadio::DoAutoSetVolume(int target_volume){
 	uint newvolume = (uint)(error * K_P) + (uint)(integral_error * K_I) + (uint)(derivative_error * K_D);
 
 	SetVolume(newvolume);
-	//Serial.printf("\r\nAvg Input: %3.2f flags: %x vol: %d inlvl: %d int: %f", avg_input_level_, radio_.currASQ, GetVolume(), radio_.currInLevel, integral_error);
+	//Serial.printf("\r\nAvg Input: %3.2f flags: %x vol: %d inlvl: %d int: %f", avg_input, radio_.currASQ, GetVolume(), radio_.currInLevel, integral_error);
 }
 
 int FmRadio::GetInputLevel(void){

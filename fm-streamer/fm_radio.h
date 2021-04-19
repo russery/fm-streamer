@@ -50,8 +50,6 @@ private:
 	uint freq_khz_ = 8810;
 	uint txpower_percent_ = 88;
 	uint vol_percent_ = 80;
-	float avg_input_level_;
-	const int AVG_INPUT_CYCLES_ = 30;
 };
 
 #endif // __FM_RADIO_H

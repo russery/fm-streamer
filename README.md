@@ -9,11 +9,3 @@ Install [arduino-cli](https://github.com/arduino/arduino-cli). This project is s
 Run `make config-tools` to install libraries and ESP8266 core.
 
 Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SSID and password in it to match the network you wish to attach to.
-
-
-TODO:
-- Autoset volume mode
-- RDS with PTY, other fields
-- See if stream buffering changes noticably with different buffer sizes
-- Handle board LED
-- Clean up board wiring

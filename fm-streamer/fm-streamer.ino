@@ -61,6 +61,9 @@ const uint DFT_STATION PROGMEM = 0;
 const uint DFT_FREQ PROGMEM = 88100;
 const uint DFT_POWER PROGMEM = 90;
 const uint DFT_VOLUME PROGMEM = 80;
+const char LED_STREAMING PROGMEM = 16;
+const char LED_OFF PROGMEM = HIGH;
+const char LED_ON PROGMEM = LOW;
 
 typedef struct { const char URL[128]; const char Name[32]; } Stream_t;
 const Stream_t StationList[] PROGMEM = {
@@ -76,7 +79,7 @@ AsyncWebServer webserver(80);
 #endif // WEBSERVER
 FmRadio fm_radio;
 
-InternetStream stream = InternetStream(2048, &(fm_radio.i2s_input));
+InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
 
 #ifdef WEBSERVER
 String WebpageProcessor(const String& var){
@@ -155,10 +158,12 @@ String ReadConfigVal(File *configfile){
 void setup() {
     delay(500);
     Serial.begin(115200);
-    Serial.println("FM Streamer Starting...\r\n\n");
+    Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
     // Check clock freq:
     assert(ESP.getCpuFreqMHz() == 160); // Clock Frequency must be 160MHz - make sure this is configured in Arduino IDE or CLI
+    pinMode(LED_STREAMING, OUTPUT);
+    digitalWrite(LED_STREAMING, LED_OFF);
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
@@ -188,10 +193,7 @@ void loop() {
     static enum LoopState {
         ST_WIFI_CONNECT, ST_STREAM_START, ST_STREAM_CONNECTING, ST_STREAMING
     } state_ = ST_WIFI_CONNECT;
-    static uint last_print_ms = 0;
-    static uint last_autovol_ms = 0;
     static bool mdns_active = false;
-    bool stream_is_running;
 
     switch (state_){
         case ST_WIFI_CONNECT:
@@ -208,28 +210,29 @@ void loop() {
             MDNS.update();
             stream.OpenUrl(StationList[curr_station].URL);
             fm_radio.SetRdsText(StationList[curr_station].Name);
+            digitalWrite(LED_STREAMING, LED_OFF);
             state_ = ST_STREAM_CONNECTING;
             break;
         case ST_STREAM_CONNECTING:
             MDNS.update();
-           stream_is_running = stream.Loop();
-           if (stream_is_running){
-               state_ = ST_STREAMING;
-           }
+            if (stream.Loop()){
+                state_ = ST_STREAMING;
+            }
             break;
         case ST_STREAMING:
             MDNS.update();
-            if (millis()-last_autovol_ms > 1000) {
+            static uint last_autovol_ms = 0;
+            if (millis()-last_autovol_ms > 5000) {
                 last_autovol_ms = millis();
                 fm_radio.DoAutoSetVolume();
             }
-           stream_is_running = stream.Loop();
-           if (!stream_is_running){
+            digitalWrite(LED_STREAMING, LED_ON);
+            if (!stream.Loop()){
                state_ = ST_STREAM_START;
-           }
+            }
             break;
     }
-
+    static uint last_print_ms = 0;
     if (millis()-last_print_ms > 1000) {
         last_print_ms = millis();
         Serial.print(F("\r\n\n\n"));
@@ -251,8 +254,7 @@ void loop() {
         Serial.printf_P((PGM_P)"\r\nStation: %s", StationList[curr_station].Name);
         Serial.printf_P((PGM_P)"\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%",
             float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(), fm_radio.GetVolume());
-        Serial.printf_P((PGM_P)"\r\nRadio Input Level %d", fm_radio.GetInputLevel());
     }
     // Give Wifi some time to do its work:
-    delay(1);
+    delay(10);
 }
