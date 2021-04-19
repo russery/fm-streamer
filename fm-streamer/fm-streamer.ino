@@ -65,17 +65,20 @@ const uint DFT_VOLUME PROGMEM = 80;
 typedef struct { const char URL[128]; const char Name[32]; } Stream_t;
 const Stream_t StationList[] PROGMEM = {
     {{.URL="http://streams.kqed.org/kqedradio"}, {.Name="KQED San Francisco"}},
-    {{.URL="http://stream.revma.ihrhls.com/zc2804"}, {.Name="KBCO Denver"}},
-    {{.URL="https://kunrstream.com:8443/live"}, {.Name="KUNR Reno"}}
+    {{.URL="http://ais-edge16-jbmedia-nyc04.cdnstream.com/1power"}, {.Name="PowerHitz"}},
+    {{.URL="https://kunrstream.com:8000/live"}, {.Name="KUNR Reno"}}
 };
 const uint NUM_STATIONS PROGMEM = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
 
-//AsyncWebServer webserver(80);
+#ifdef WEBSERVER
+AsyncWebServer webserver(80);
+#endif // WEBSERVER
 FmRadio fm_radio;
 
-InternetStream stream = InternetStream(1024, &(fm_radio.i2s_input));
+InternetStream stream = InternetStream(2048, &(fm_radio.i2s_input));
 
+#ifdef WEBSERVER
 String WebpageProcessor(const String& var){
     if (var == "STATION-LIST") {
         char list[512] = {0};
@@ -122,6 +125,7 @@ void HandlePagePost(AsyncWebServerRequest *request) {
     WriteConfig(curr_station, fm_radio.GetFreq(), fm_radio.GetTxPower(), fm_radio.GetVolume());
     request->redirect("/");
 }
+#endif // WEBSERVER
 
 void WriteConfig(uint station, uint freq, uint power, uint vol){
     if (SPIFFS.exists(CONFIG_FILE_NAME)) {
@@ -158,40 +162,43 @@ void setup() {
 
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-    // webserver.on("/", ServePage);
-    // webserver.onNotFound(ServePage); // Just direct everything to the same page
-    // webserver.on("/post", HTTP_POST, HandlePagePost);
+    #ifdef WEBSERVER
+    webserver.on("/", ServePage);
+    webserver.onNotFound(ServePage); // Just direct everything to the same page
+    webserver.on("/post", HTTP_POST, HandlePagePost);
+    #endif // WEBSERVER
 
-    fm_radio.Start();
+    fm_radio.Start("BERTBERT");
 
     SPIFFS.begin();
     if (!SPIFFS.exists(CONFIG_FILE_NAME)){
         // Initialize config with default values
         Serial.println("No config found... writing defaults.");
         WriteConfig(DFT_STATION, DFT_FREQ, DFT_POWER, DFT_VOLUME);
-    } else {
-        File configfile = SPIFFS.open(CONFIG_FILE_NAME, "r");
-        curr_station = ReadConfigVal(&configfile).toInt();
-        fm_radio.SetFreq(ReadConfigVal(&configfile).toInt());
-        fm_radio.SetTxPower(ReadConfigVal(&configfile).toInt());
-        fm_radio.SetVolume(ReadConfigVal(&configfile).toInt());
-        configfile.close();
     }
+    File configfile = SPIFFS.open(CONFIG_FILE_NAME, "r");
+    curr_station = ReadConfigVal(&configfile).toInt();
+    fm_radio.SetFreq(ReadConfigVal(&configfile).toInt());
+    fm_radio.SetTxPower(ReadConfigVal(&configfile).toInt());
+    fm_radio.SetVolume(ReadConfigVal(&configfile).toInt());
+    configfile.close();
 }
-
 
 void loop() {
     static enum LoopState {
         ST_WIFI_CONNECT, ST_STREAM_START, ST_STREAM_CONNECTING, ST_STREAMING
     } state_ = ST_WIFI_CONNECT;
     static uint last_print_ms = 0;
+    static uint last_autovol_ms = 0;
     static bool mdns_active = false;
     bool stream_is_running;
 
     switch (state_){
         case ST_WIFI_CONNECT:
             if(WiFi.status() == WL_CONNECTED){
-                //webserver.begin();
+                #ifdef WEBSERVER
+                webserver.begin();
+                #endif // WEBSERVER
                 mdns_active = MDNS.begin(MDNS_ADDRESS);
                 MDNS.addService("http", "tcp", 80);
                 state_ = ST_STREAM_START;
@@ -200,6 +207,7 @@ void loop() {
         case ST_STREAM_START:
             MDNS.update();
             stream.OpenUrl(StationList[curr_station].URL);
+            fm_radio.SetRdsText(StationList[curr_station].Name);
             state_ = ST_STREAM_CONNECTING;
             break;
         case ST_STREAM_CONNECTING:
@@ -211,6 +219,10 @@ void loop() {
             break;
         case ST_STREAMING:
             MDNS.update();
+            if (millis()-last_autovol_ms > 1000) {
+                last_autovol_ms = millis();
+                fm_radio.DoAutoSetVolume();
+            }
            stream_is_running = stream.Loop();
            if (!stream_is_running){
                state_ = ST_STREAM_START;
@@ -218,26 +230,29 @@ void loop() {
             break;
     }
 
-    if(millis()-last_print_ms > 1000) {
+    if (millis()-last_print_ms > 1000) {
         last_print_ms = millis();
-            Serial.print(F("\r\n\n\n"));
-            Serial.print(F("\r\n-----------------------------------"));
-            Serial.print(F("\r\n        fm-streamer status"));
-            Serial.print(F("\r\n-----------------------------------"));
-            uint sec = millis() / 1000;
-            Serial.printf_P((PGM_P)"\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
-            Serial.printf_P((PGM_P)"\r\nSSID: \"%s\"", WiFi.SSID().c_str());
-            Serial.printf_P((PGM_P)"\r\nIP Address: %s DNS: %s%s", WiFi.localIP().toString().c_str(),
-                (mdns_active) ? MDNS_ADDRESS : (PGM_P)("<inactive>"), (mdns_active) ? (PGM_P)(".local") : "");
-            Serial.print(F("\r\nStatus: "));
-            switch (state_){
-                case ST_WIFI_CONNECT: Serial.print(F("Connecting to Wifi")); break;
-                case ST_STREAM_START: Serial.print(F("Starting internet stream")); break;
-                case ST_STREAM_CONNECTING: Serial.print(F("Connecting to internet stream")); break;
-                case ST_STREAMING: Serial.print(F("Streaming from internet"));break;
-            }
-            Serial.printf_P((PGM_P)"\r\nStation: %s", StationList[curr_station].Name);
-            Serial.printf_P((PGM_P)"\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%",
-                float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(), fm_radio.GetVolume());
+        Serial.print(F("\r\n\n\n"));
+        Serial.print(F("\r\n-----------------------------------"));
+        Serial.print(F("\r\n        fm-streamer status"));
+        Serial.print(F("\r\n-----------------------------------"));
+        uint sec = millis() / 1000;
+        Serial.printf_P((PGM_P)"\r\nUptime: %d days %d hrs %d mins %d sec", sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+        Serial.printf_P((PGM_P)"\r\nSSID: \"%s\"", WiFi.SSID().c_str());
+        Serial.printf_P((PGM_P)"\r\nIP Address: %s DNS: %s%s", WiFi.localIP().toString().c_str(),
+            (mdns_active) ? MDNS_ADDRESS : (PGM_P)("<inactive>"), (mdns_active) ? (PGM_P)(".local") : "");
+        Serial.print(F("\r\nStatus: "));
+        switch (state_){
+            case ST_WIFI_CONNECT: Serial.print(F("Connecting to Wifi")); break;
+            case ST_STREAM_START: Serial.print(F("Starting internet stream")); break;
+            case ST_STREAM_CONNECTING: Serial.print(F("Connecting to internet stream")); break;
+            case ST_STREAMING: Serial.print(F("Streaming from internet"));break;
+        }
+        Serial.printf_P((PGM_P)"\r\nStation: %s", StationList[curr_station].Name);
+        Serial.printf_P((PGM_P)"\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%",
+            float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(), fm_radio.GetVolume());
+        Serial.printf_P((PGM_P)"\r\nRadio Input Level %d", fm_radio.GetInputLevel());
     }
+    // Give Wifi some time to do its work:
+    delay(1);
 }

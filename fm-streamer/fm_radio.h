@@ -31,22 +31,27 @@ class FmRadio
 public:
 	AudioOutputI2S i2s_input;
 
-	void Start(void);
+	void Start(char* station_id="FM Streamer");
 	void SetTxPower(uint percent);
 	uint GetTxPower(void);
 	void SetVolume(uint percent);
 	uint GetVolume(void);
-	bool DoAutoSetVolume(void);
+	void DoAutoSetVolume(int target_volume = -6);
+	int GetInputLevel(void);
 	void SetFreq(uint khz);
 	uint GetFreq(void);
 	void PowerDown(void);
-	void SetRdsText(char *text);
+	void SetRdsText(const char *text);
+
+	Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
 
 private:
-	Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
+
 	uint freq_khz_ = 8810;
 	uint txpower_percent_ = 88;
 	uint vol_percent_ = 80;
+	float avg_input_level_;
+	const int AVG_INPUT_CYCLES_ = 30;
 };
 
 #endif // __FM_RADIO_H

@@ -12,5 +12,8 @@ Rename `arduino_secrets.h.example` to `arduino_secrets.h` and change the wifi SS
 
 
 TODO:
+- Autoset volume mode
+- RDS with PTY, other fields
+- See if stream buffering changes noticably with different buffer sizes
 - Handle board LED
 - Clean up board wiring

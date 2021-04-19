@@ -36,7 +36,7 @@ public:
 
 private:
 	AudioGeneratorMP3 *mp3_;
-	AudioFileSourceICYStream *file_;
+	AudioFileSourceHTTPStream *file_;//AudioFileSourceICYStream *file_;
 	AudioFileSourceBuffer *buff_;
 	AudioOutputI2S *out_;
 };

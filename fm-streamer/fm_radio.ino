@@ -19,11 +19,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <assert.h>
 
-void FmRadio::Start(void){
+void FmRadio::Start(char *station_id){
 	bool radio_started = radio_.begin();
     assert(radio_started);
     radio_.beginRDS();
-    radio_.setRDSstation("FM Streamer");
+    radio_.setRDSstation(station_id);
+    avg_input_level_ = GetInputLevel();
 }
 
 void FmRadio::PowerDown(void){
@@ -54,11 +55,40 @@ uint FmRadio::GetVolume(void){
 	return vol_percent_;
 }
 
-bool FmRadio::DoAutoSetVolume(void){
-	// TODO
-	// Read input level at FM radio and adjust I2S volume until it's just below clipping.
-	return true;
+void FmRadio::DoAutoSetVolume(int target_volume){
+	static float integral_error = 0;
+	static float previous_error = 0;
+	const float K_P = 3.0f;
+	const float K_I = 0.5f;
+	const float K_D = 0.0f;
+	const float INT_SAT_VAL = 10.0f;
+
+	avg_input_level_ = (((AVG_INPUT_CYCLES_-1) * avg_input_level_) + GetInputLevel()) / AVG_INPUT_CYCLES_;
+
+	float error = target_volume - avg_input_level_;
+
+	// Calculate integral and saturate:
+	integral_error = integral_error + error;
+	if(integral_error > INT_SAT_VAL)
+		integral_error = INT_SAT_VAL;
+	else if(integral_error < -INT_SAT_VAL)
+		integral_error = -INT_SAT_VAL;
+
+	// Calculate derivative:
+	float derivative_error = error - previous_error;
+	previous_error = error;
+
+	uint newvolume = (uint)(error * K_P) + (uint)(integral_error * K_I) + (uint)(derivative_error * K_D);
+
+	SetVolume(newvolume);
+	//Serial.printf("\r\nAvg Input: %3.2f flags: %x vol: %d inlvl: %d int: %f", avg_input_level_, radio_.currASQ, GetVolume(), radio_.currInLevel, integral_error);
 }
+
+int FmRadio::GetInputLevel(void){
+	radio_.readASQ();
+	return radio_.currInLevel;
+}
+
 
 void FmRadio::SetFreq(uint khz) {
 	if (khz > 108000) khz = 108000; // Saturate at 108MHz
@@ -72,6 +102,8 @@ uint FmRadio::GetFreq(void) {
 	return freq_khz_;
 }
 
-void FmRadio::SetRdsText(char *text){
-	radio_.setRDSbuffer(text);
+void FmRadio::SetRdsText(const char *text){
+	char temp_buff[64];
+	strncpy_P(temp_buff, text, sizeof(temp_buff));
+	radio_.setRDSbuffer(temp_buff);
 }
