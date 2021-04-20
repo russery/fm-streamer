@@ -63,6 +63,7 @@ InternetStream::InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink)
   buff_->RegisterMetadataCB(MetaDataCallback, (void *)"buffer");
   buff_->RegisterStatusCB(StatusCallback, (void *)"buffer");
 
+  // cppcheck-suppress [noOperatorEq,noCopyConstructor]
   mp3_ = new AudioGeneratorMP3();
   mp3_->RegisterMetadataCB(MetaDataCallback, (void *)"mp3");
   mp3_->RegisterStatusCB(StatusCallback, (void *)"mp3");

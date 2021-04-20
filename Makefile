@@ -22,7 +22,8 @@ VERBOSE=
 
 # Build path -- used to store built binary and object files
 BUILD_DIR=_build
-BUILD_PATH=$(PWD)/$(PROJECT_BASE)/$(BUILD_DIR)
+SOURCE_PATH=$(PWD)/$(PROJECT_BASE)/
+BUILD_PATH=$(SOURCE_PATH)$(BUILD_DIR)
 
 ifneq ($(V), 0)
 	VERBOSE=-v
@@ -52,6 +53,10 @@ stop-serial:
 
 serial: stop-serial
 	screen $(SERIAL_PORT) $(BAUDRATE)
+
+check:
+	clang-format $(SOURCE_PATH)*.ino $(SOURCE_PATH)*.h -style=file -i
+	cppcheck --suppress=missingIncludeSystem --enable=all --std=c++11 --inline-suppr --language=c++ $(SOURCE_PATH)*.ino
 
 clean:
 	@rm -rf $(BUILD_PATH)

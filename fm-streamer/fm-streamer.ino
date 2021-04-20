@@ -89,7 +89,6 @@ InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
 
 #ifdef WEBSERVER
 String WebpageProcessor(const String &var) {
-  char buff[512] = {0};
   if (var == "STATION-LIST") {
     char buff[512] = {0};
     uint startchar = 0;
@@ -109,6 +108,7 @@ String WebpageProcessor(const String &var) {
   } else if (var == "VOL") {
     return String(fm_radio.GetVolume());
   } else if (var == "UPTIME") {
+    char buff[512] = {0};
     uint sec = millis() / 1000;
     sprintf(buff, "    <div>Uptime: %d days %d hrs %d mins %d sec</div>\r\n",
             sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
@@ -172,6 +172,7 @@ String ReadConfigVal(File *configfile) {
   return val;
 }
 
+// cppcheck-suppress unusedFunction
 void setup() {
   delay(500);
   Serial.begin(115200);

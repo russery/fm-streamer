@@ -20,8 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <assert.h>
 
 void FmRadio::Start(char *station_id) {
-  bool radio_started = radio_.begin();
-  assert(radio_started);
+  radio_.begin();
   radio_.beginRDS();
   radio_.setRDSstation(station_id);
 }
