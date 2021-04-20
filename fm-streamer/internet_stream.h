@@ -21,25 +21,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef __INTERNET_STREAM_H
 #define __INTERNET_STREAM_H
 
-#include <AudioFileSourceICYStream.h>
 #include <AudioFileSourceBuffer.h>
-#include <AudioOutputI2S.h>
+#include <AudioFileSourceICYStream.h>
 #include <AudioGeneratorMP3.h>
+#include <AudioOutputI2S.h>
 
 class InternetStream {
 public:
-	InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
-	~InternetStream();
+  InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
+  ~InternetStream();
 
-	void OpenUrl(const char* stream_url);
-	bool Loop(void);
+  void OpenUrl(const char *stream_url);
+  bool Loop(void);
 
 private:
-	AudioGeneratorMP3 *mp3_;
-	AudioFileSourceHTTPStream *file_;//AudioFileSourceICYStream *file_;
-	AudioFileSourceBuffer *buff_;
-	AudioOutputI2S *out_;
+  AudioGeneratorMP3 *mp3_;
+  AudioFileSourceHTTPStream *file_; // AudioFileSourceICYStream *file_;
+  AudioFileSourceBuffer *buff_;
+  AudioOutputI2S *out_;
 };
-
 
 #endif // __INTERNET_STREAM_H
