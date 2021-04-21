@@ -87,7 +87,7 @@ FmRadio fm_radio;
 
 InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
 
-void(* resetFunc) (void) = 0;
+void (*resetFunc)(void) = 0;
 
 #ifdef WEBSERVER
 String WebpageProcessor(const String &var) {

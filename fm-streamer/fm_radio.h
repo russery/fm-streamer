@@ -30,7 +30,7 @@ class FmRadio {
 public:
   AudioOutputI2S i2s_input;
 
-  void Start(char *station_id = "FM Streamer");
+  void Start(const char *station_id = "FM Streamer");
   void SetTxPower(uint percent);
   uint GetTxPower(void);
   void SetVolume(uint percent);

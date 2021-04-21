@@ -19,10 +19,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <assert.h>
 
-void FmRadio::Start(char *station_id) {
+void FmRadio::Start(const char *station_id) {
   radio_.begin();
   radio_.beginRDS();
-  radio_.setRDSstation(station_id);
+  radio_.setRDSstation((char *)station_id);
 }
 
 void FmRadio::PowerDown(void) { radio_.reset(); }
