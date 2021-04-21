@@ -297,6 +297,5 @@ void loop() {
                     float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(),
                     fm_radio.GetVolume());
   }
-  // Give Wifi some time to do its work:
-  delay(10);
+  yield(); // Make sure WiFi can do its thing.
 }
