@@ -4,7 +4,7 @@ Are there not a lot of good FM radio stations in your vicinity? Have you ever wi
 This is a simple ESP8266 project that grabs an MP3 internet stream and bridges it to an FM transmitter, so that you can listen to the stream on your old-school FM radio.
 
 
-# Setup / Usage
+# Setup
 If you're on Linux or Mac (or any system with GNU Make installed), install [arduino-cli](https://github.com/arduino/arduino-cli). This project is set up to work out of the box with it, and this will save you having to set up the ESP8266 and required libraries in your Arduino IDE.
 
 1. Run `make config-tools` to install libraries and ESP8266 core.
@@ -12,6 +12,11 @@ If you're on Linux or Mac (or any system with GNU Make installed), install [ardu
 1. If you want to change the radio streams, edit them in the `StationList` struct in fm-streamer.ino.
 1. Power on your ESP8266 and connect its serial port to your computer. Edit the Makefile to change the `SERIAL_PORT` to match how the ESP8266 comes up on your system.
 1. Run `make program` to compile the code and upload it to your board.
+
+# Usage
+At this point, the FM Streamer should connect to your wifi network, begin streaming the first mp3 stream in `StationList`, and automatically broadcast over FM. There is a status output on the serial console that will tell you what's going on with the board as well.
+
+I've implemented a web interface to the FM Streamer that would allow you to control the station, volume, and transmit power of the FM Streamer, but I've found that the ESP8266 does not have enough RAM to handle the web server and streaming audio concurrently. I'm hoping upgrading the ESP8266 to an ESP32 will resolve this, but I haven't tested it yet. For now, the web server component is disabled with an `#ifndef WEBSERVER` directive.
 
 ---
 
@@ -23,6 +28,7 @@ This project consists of three hardware components:
 
 ## Hardware
 These are wired together like so:
+
 <img src="./docs/hardware-wiring.png" width="400" />
 
 Everything is powered from the NodeMCU's 3.3V output. The Si4713 FM transmitter is connected to the NodeMCU over I2C, the UDA1334 DAC is connected to it over I2S, and then the UDA1334 DAC outputs audio to the Si4713 transmitter via analog stereo audio.
@@ -31,6 +37,6 @@ I also wired a 4.7kΩ resistor from each of the DAC's analog audio outputs to GN
 
 ## Software
 The software makes use of the ESP8266Audio library and Adafruit's Si4713 driver:
-<img src="./docs/software-diagram.png" width="600" />
 
+<img src="./docs/software-diagram.png" width="600" />
 
