@@ -22,7 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define __INTERNET_STREAM_H
 
 #include <AudioFileSourceBuffer.h>
-#include <AudioFileSourceICYStream.h>
+#include <AudioFileSourceHTTPStream.h>
 #include <AudioGeneratorMP3.h>
 #include <AudioOutputI2S.h>
 

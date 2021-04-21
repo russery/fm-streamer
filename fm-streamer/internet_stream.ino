@@ -55,7 +55,7 @@ void StatusCallback(void *cbData, int code, const char *string) {
 
 InternetStream::InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink)
     : out_(i2s_sink) {
-  file_ = new AudioFileSourceHTTPStream(); // AudioFileSourceICYStream();
+  file_ = new AudioFileSourceHTTPStream();
   file_->RegisterMetadataCB(MetaDataCallback, (void *)"stream");
   file_->RegisterStatusCB(StatusCallback, (void *)"stream");
 

@@ -87,6 +87,8 @@ FmRadio fm_radio;
 
 InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
 
+void(* resetFunc) (void) = 0;
+
 #ifdef WEBSERVER
 String WebpageProcessor(const String &var) {
   if (var == "STATION-LIST") {
@@ -217,6 +219,7 @@ void loop() {
     ST_STREAMING
   } state_ = ST_WIFI_CONNECT;
   static bool mdns_active = false;
+  static uint stream_start_time_ms = 0;
 
   switch (state_) {
   case ST_WIFI_CONNECT:
@@ -235,11 +238,15 @@ void loop() {
     fm_radio.SetRdsText(StationList[curr_station].Name);
     digitalWrite(LED_STREAMING, LED_OFF);
     state_ = ST_STREAM_CONNECTING;
+    stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
     MDNS.update();
     if (stream.Loop()) {
       state_ = ST_STREAMING;
+    } else if (millis() - stream_start_time_ms > 30000) {
+      // Timed out trying to connect, try resetting
+      resetFunc();
     }
     break;
   case ST_STREAMING:
