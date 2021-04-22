@@ -1,0 +1,3 @@
+arduino_secrets.h
+*/_build/*
+*.DS_Store
