@@ -25,13 +25,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #if defined(ESP32)
 #include <AsyncTCP.h>
 #include <WiFi.h>
-#include <mdns.h>
 #include <esp_err.h>
 #include <esp_spiffs.h>
+#include <mdns.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
-#include <ESPAsyncTCP.h>
 #include <ESP8266mDNS.h>
+#include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
 #include <Wire.h>
@@ -88,16 +88,16 @@ const Stream_t StationList[] PROGMEM = {
 const uint NUM_STATIONS PROGMEM = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
 
-#ifdef WEBSERVER
+#if defined(ESP32)
 AsyncWebServer webserver(80);
-#endif // WEBSERVER
+#endif
 FmRadio fm_radio;
 
 InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
 
 void (*resetFunc)(void) = 0;
 
-#ifdef WEBSERVER
+#if defined(ESP32)
 String WebpageProcessor(const String &var) {
   if (var == "STATION-LIST") {
     char buff[512] = {0};
@@ -156,22 +156,22 @@ void HandlePagePost(AsyncWebServerRequest *request) {
               fm_radio.GetVolume());
   request->redirect("/");
 }
-#endif // WEBSERVER
+#endif // ESP32
 
 void WriteConfig(uint station, uint freq, uint power, uint vol) {
-  #if defined(ESP32)
+#if defined(ESP32)
   struct stat st;
   if (stat(CONFIG_FILE_NAME, &st) == 0) {
-      unlink(CONFIG_FILE_NAME);
+    unlink(CONFIG_FILE_NAME);
   }
-  FILE* configfile = fopen(CONFIG_FILE_NAME, "w");
+  FILE *configfile = fopen(CONFIG_FILE_NAME, "w");
   if (!configfile) {
-      Serial.println("File open failed");
+    Serial.println("File open failed");
   } else {
     fprintf(configfile, "%d %d %d %d ", station, freq, power, vol);
     fclose(configfile);
   }
-  #elif defined(ESP8266)
+#elif defined(ESP8266)
   if (SPIFFS.exists(CONFIG_FILE_NAME)) {
     SPIFFS.remove(CONFIG_FILE_NAME);
   }
@@ -182,7 +182,7 @@ void WriteConfig(uint station, uint freq, uint power, uint vol) {
     configfile.printf("%d %d %d %d ", station, freq, power, vol);
     configfile.close();
   }
-  #endif
+#endif
 }
 
 #if defined(ESP32)
@@ -214,7 +214,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  // Check clock freq:
   assert(ESP.getCpuFreqMHz() ==
          160); // Clock Frequency must be 160MHz - make sure this is configured
                // in Arduino IDE or CLI
@@ -223,39 +222,38 @@ void setup() {
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-#ifdef WEBSERVER
+#if defined(ESP32)
   webserver.on("/", ServePage);
   webserver.onNotFound(ServePage); // Just direct everything to the same page
   webserver.on("/post", HTTP_POST, HandlePagePost);
-#endif // WEBSERVER
+#endif
 
   fm_radio.Start(RDS_STATION_NAME);
 
 #if defined(ESP32)
-  esp_vfs_spiffs_conf_t conf = {
-    .base_path = "/",
-    .partition_label = NULL,
-    .max_files = 1,
-    .format_if_mount_failed = true
-  };
+  esp_vfs_spiffs_conf_t conf = {.base_path = "/",
+                                .partition_label = NULL,
+                                .max_files = 1,
+                                .format_if_mount_failed = true};
   esp_err_t ret = esp_vfs_spiffs_register(&conf);
   if (ret != ESP_OK) {
-      if (ret == ESP_FAIL) {
-          Serial.println("Failed to mount or format filesystem");
-      } else if (ret == ESP_ERR_NOT_FOUND) {
-          Serial.println("Failed to find SPIFFS partition");
-      } else {
-          Serial.printf("Failed to initialize SPIFFS (%s)\r\n", esp_err_to_name(ret));
-      }
-      return;
+    if (ret == ESP_FAIL) {
+      Serial.println("Failed to mount or format filesystem");
+    } else if (ret == ESP_ERR_NOT_FOUND) {
+      Serial.println("Failed to find SPIFFS partition");
+    } else {
+      Serial.printf("Failed to initialize SPIFFS (%s)\r\n",
+                    esp_err_to_name(ret));
+    }
+    return;
   }
   struct stat st;
   if (stat(CONFIG_FILE_NAME, &st) == 0) {
-      // Initialize config with default values
+    // Initialize config with default values
     Serial.println("No config found... writing defaults.");
     WriteConfig(DFT_STATION, DFT_FREQ, DFT_POWER, DFT_VOLUME);
   }
-  FILE* configfile = fopen(CONFIG_FILE_NAME, "r");
+  FILE *configfile = fopen(CONFIG_FILE_NAME, "r");
   curr_station = ReadConfigVal(configfile).toInt();
   fm_radio.SetFreq(ReadConfigVal(configfile).toInt());
   fm_radio.SetTxPower(ReadConfigVal(configfile).toInt());
@@ -290,25 +288,26 @@ void loop() {
   switch (state_) {
   case ST_WIFI_CONNECT:
     if (WiFi.status() == WL_CONNECTED) {
-#ifdef WEBSERVER
+#if defined(ESP32)
       webserver.begin();
-#endif // WEBSERVER
+#endif
 
-      #if defined(ESP32)
+#if defined(ESP32)
       mdns_init();
       mdns_hostname_set(MDNS_ADDRESS);
-      mdns_active = (mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0) == ESP_OK);
-      #elif defined(ESP8266)
+      mdns_active =
+          (mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0) == ESP_OK);
+#elif defined(ESP8266)
       mdns_active = MDNS.begin(MDNS_ADDRESS);
       MDNS.addService("http", "tcp", 80);
-      #endif
+#endif
       state_ = ST_STREAM_START;
     }
     break;
   case ST_STREAM_START:
-    #if defined(ESP8266)
+#if defined(ESP8266)
     MDNS.update();
-    #endif
+#endif
     stream.OpenUrl(StationList[curr_station].URL);
     fm_radio.SetRdsText(StationList[curr_station].Name);
     digitalWrite(LED_STREAMING, LED_OFF);
@@ -316,9 +315,9 @@ void loop() {
     stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
-    #if defined(ESP8266)
+#if defined(ESP8266)
     MDNS.update();
-    #endif
+#endif
     if (stream.Loop()) {
       state_ = ST_STREAMING;
     } else if (millis() - stream_start_time_ms > 30000) {
@@ -327,9 +326,9 @@ void loop() {
     }
     break;
   case ST_STREAMING:
-    #if defined(ESP8266)
+#if defined(ESP8266)
     MDNS.update();
-    #endif
+#endif
     static unsigned long last_autovol_ms = 0;
     if (millis() - last_autovol_ms > 5000) {
       last_autovol_ms = millis();
@@ -354,7 +353,9 @@ void loop() {
     Serial.printf_P((PGM_P) "\r\nSSID: \"%s\"", WiFi.SSID().c_str());
     Serial.printf_P((PGM_P) "\r\nIP Address: %s DNS: %s%s",
                     WiFi.localIP().toString().c_str(),
+                    // cppcheck-suppress knownConditionTrueFalse
                     (mdns_active) ? MDNS_ADDRESS : (PGM_P)("<inactive>"),
+                    // cppcheck-suppress knownConditionTrueFalse
                     (mdns_active) ? (PGM_P)(".local") : "");
     Serial.print(F("\r\nStatus: "));
     switch (state_) {
