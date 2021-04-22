@@ -3,12 +3,20 @@ SERIAL_PORT ?= /dev/cu.usbserial-0001
 BAUDRATE = 115200
 
 # Arduino CLI Fully Qualified Board Name (FQBN)
-CORE ?= esp8266:esp8266
-BOARD_TYPE ?= $(CORE):nodemcuv2
-BOARD_OPTIONS ?= :xtal=160
-PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json" # Add extra packages in comma-separated list
+MCU_TYPE ?= esp8266
+#MCU_TYPE ?= esp32
+ifeq ($(MCU_TYPE), esp8266)
+	BOARD_TYPE ?= $(MCU_TYPE):$(MCU_TYPE):nodemcuv2
+	PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json"
+	BOARD_OPTIONS ?= :xtal=160
+	GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/ESPAsyncTCP
+else ifeq ($(MCU_TYPE), esp32)
+	BOARD_TYPE ?= $(MCU_TYPE):$(MCU_TYPE):node32s
+	PACKAGE_URLS ?= https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+	GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/AsyncTCP.git
+	BOARD_OPTIONS ?=
+endif
 LIBRARIES ?= ESP8266Audio@1.9.0 "Adafruit Si4713 Library" # Add extra libraries in a space-separated list
-GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/ESPAsyncTCP
 
 PROJECT_BASE = fm-streamer
 PROJECT ?= fm-streamer
@@ -38,7 +46,7 @@ config-tools:
 	$(ARDUINO_CLI) config init --additional-urls $(PACKAGE_URLS) --overwrite
 	$(ARDUINO_CLI) config set library.enable_unsafe_install true
 	$(ARDUINO_CLI) core update-index
-	$(ARDUINO_CLI) core install $(CORE)
+	$(ARDUINO_CLI) core install $(MCU_TYPE):$(MCU_TYPE)
 	$(ARDUINO_CLI) lib install $(LIBRARIES)
 	$(foreach lib, $(GIT_LIBRARIES), $(ARDUINO_CLI) lib install --git-url $(lib);)
 

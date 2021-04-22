@@ -22,9 +22,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "fm_radio.h"
 #include "internet_stream.h"
 #include <Arduino.h>
+#if defined(ESP32)
+#include <AsyncTCP.h>
+#include <WiFi.h>
+#include <mdns.h>
+#include <esp_err.h>
+#include <esp_spiffs.h>
+#elif defined(ESP8266)
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
 #include <ESPAsyncTCP.h>
+#include <ESP8266mDNS.h>
+#endif
 #include <ESPAsyncWebServer.h>
 #include <Wire.h>
 #include <assert.h>
@@ -111,9 +119,10 @@ String WebpageProcessor(const String &var) {
     return String(fm_radio.GetVolume());
   } else if (var == "UPTIME") {
     char buff[512] = {0};
-    uint sec = millis() / 1000;
+    unsigned long sec = millis() / 1000;
     sprintf(buff, "    <div>Uptime: %d days %d hrs %d mins %d sec</div>\r\n",
-            sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
+            (uint)(sec / 86400L), (uint)(sec / 3600L) % 24,
+            (uint)(sec / 60L) % 60, (uint)sec % 60);
     return String(buff);
   }
   return String();
@@ -150,20 +159,44 @@ void HandlePagePost(AsyncWebServerRequest *request) {
 #endif // WEBSERVER
 
 void WriteConfig(uint station, uint freq, uint power, uint vol) {
+  #if defined(ESP32)
+  struct stat st;
+  if (stat(CONFIG_FILE_NAME, &st) == 0) {
+      unlink(CONFIG_FILE_NAME);
+  }
+  FILE* configfile = fopen(CONFIG_FILE_NAME, "w");
+  if (!configfile) {
+      Serial.println("File open failed");
+  } else {
+    fprintf(configfile, "%d %d %d %d ", station, freq, power, vol);
+    fclose(configfile);
+  }
+  #elif defined(ESP8266)
   if (SPIFFS.exists(CONFIG_FILE_NAME)) {
     SPIFFS.remove(CONFIG_FILE_NAME);
   }
   File configfile = SPIFFS.open(CONFIG_FILE_NAME, "w");
   if (!configfile) {
-    Serial.println("File open failed...");
+    Serial.println("File open failed");
   } else {
-    char cfg_str[64] = {0};
-    sprintf(cfg_str, "%d %d %d %d ", station, freq, power, vol);
-    configfile.print(cfg_str);
+    configfile.printf("%d %d %d %d ", station, freq, power, vol);
     configfile.close();
   }
+  #endif
 }
 
+#if defined(ESP32)
+String ReadConfigVal(FILE *configfile) {
+  String val = "";
+  char r;
+  fgets(&r, 2, configfile);
+  while (r != ' ') {
+    val += r;
+    fgets(&r, 2, configfile);
+  }
+  return val;
+}
+#elif defined(ESP8266)
 String ReadConfigVal(File *configfile) {
   String val = "";
   char r = (char)configfile->read();
@@ -173,6 +206,7 @@ String ReadConfigVal(File *configfile) {
   }
   return val;
 }
+#endif
 
 // cppcheck-suppress unusedFunction
 void setup() {
@@ -197,6 +231,37 @@ void setup() {
 
   fm_radio.Start(RDS_STATION_NAME);
 
+#if defined(ESP32)
+  esp_vfs_spiffs_conf_t conf = {
+    .base_path = "/",
+    .partition_label = NULL,
+    .max_files = 1,
+    .format_if_mount_failed = true
+  };
+  esp_err_t ret = esp_vfs_spiffs_register(&conf);
+  if (ret != ESP_OK) {
+      if (ret == ESP_FAIL) {
+          Serial.println("Failed to mount or format filesystem");
+      } else if (ret == ESP_ERR_NOT_FOUND) {
+          Serial.println("Failed to find SPIFFS partition");
+      } else {
+          Serial.printf("Failed to initialize SPIFFS (%s)\r\n", esp_err_to_name(ret));
+      }
+      return;
+  }
+  struct stat st;
+  if (stat(CONFIG_FILE_NAME, &st) == 0) {
+      // Initialize config with default values
+    Serial.println("No config found... writing defaults.");
+    WriteConfig(DFT_STATION, DFT_FREQ, DFT_POWER, DFT_VOLUME);
+  }
+  FILE* configfile = fopen(CONFIG_FILE_NAME, "r");
+  curr_station = ReadConfigVal(configfile).toInt();
+  fm_radio.SetFreq(ReadConfigVal(configfile).toInt());
+  fm_radio.SetTxPower(ReadConfigVal(configfile).toInt());
+  fm_radio.SetVolume(ReadConfigVal(configfile).toInt());
+  fclose(configfile);
+#elif defined(ESP8266)
   SPIFFS.begin();
   if (!SPIFFS.exists(CONFIG_FILE_NAME)) {
     // Initialize config with default values
@@ -209,6 +274,7 @@ void setup() {
   fm_radio.SetTxPower(ReadConfigVal(&configfile).toInt());
   fm_radio.SetVolume(ReadConfigVal(&configfile).toInt());
   configfile.close();
+#endif
 }
 
 void loop() {
@@ -219,7 +285,7 @@ void loop() {
     ST_STREAMING
   } state_ = ST_WIFI_CONNECT;
   static bool mdns_active = false;
-  static uint stream_start_time_ms = 0;
+  static unsigned long stream_start_time_ms = 0;
 
   switch (state_) {
   case ST_WIFI_CONNECT:
@@ -227,13 +293,22 @@ void loop() {
 #ifdef WEBSERVER
       webserver.begin();
 #endif // WEBSERVER
+
+      #if defined(ESP32)
+      mdns_init();
+      mdns_hostname_set(MDNS_ADDRESS);
+      mdns_active = (mdns_service_add(NULL, "_http", "_tcp", 80, NULL, 0) == ESP_OK);
+      #elif defined(ESP8266)
       mdns_active = MDNS.begin(MDNS_ADDRESS);
       MDNS.addService("http", "tcp", 80);
+      #endif
       state_ = ST_STREAM_START;
     }
     break;
   case ST_STREAM_START:
+    #if defined(ESP8266)
     MDNS.update();
+    #endif
     stream.OpenUrl(StationList[curr_station].URL);
     fm_radio.SetRdsText(StationList[curr_station].Name);
     digitalWrite(LED_STREAMING, LED_OFF);
@@ -241,7 +316,9 @@ void loop() {
     stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
+    #if defined(ESP8266)
     MDNS.update();
+    #endif
     if (stream.Loop()) {
       state_ = ST_STREAMING;
     } else if (millis() - stream_start_time_ms > 30000) {
@@ -250,8 +327,10 @@ void loop() {
     }
     break;
   case ST_STREAMING:
+    #if defined(ESP8266)
     MDNS.update();
-    static uint last_autovol_ms = 0;
+    #endif
+    static unsigned long last_autovol_ms = 0;
     if (millis() - last_autovol_ms > 5000) {
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
@@ -262,14 +341,14 @@ void loop() {
     }
     break;
   }
-  static uint last_print_ms = 0;
+  static unsigned long last_print_ms = 0;
   if (millis() - last_print_ms > 1000) {
     last_print_ms = millis();
     Serial.print(F("\r\n\n\n"));
     Serial.print(F("\r\n-----------------------------------"));
     Serial.print(F("\r\n        fm-streamer status"));
     Serial.print(F("\r\n-----------------------------------"));
-    uint sec = millis() / 1000;
+    unsigned long sec = millis() / 1000;
     Serial.printf_P((PGM_P) "\r\nUptime: %d days %d hrs %d mins %d sec",
                     sec / 86400, (sec / 3600) % 24, (sec / 60) % 60, sec % 60);
     Serial.printf_P((PGM_P) "\r\nSSID: \"%s\"", WiFi.SSID().c_str());
