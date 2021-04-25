@@ -25,7 +25,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #if defined(ESP32)
 #include <AsyncTCP.h>
 #include <WiFi.h>
-#include <esp_err.h>
+
+// #include <esp_err.h>
+// #include <esp_log.h>
+// #include <esp_spiffs.h>
+// #include <stdio.h>
+// #include <string.h>
+// #include <sys/stat.h>
+// #include <sys/unistd.h>
+
 #include <esp_spiffs.h>
 #include <mdns.h>
 #elif defined(ESP8266)
@@ -41,6 +49,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
   <title>FM Streamer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="10">
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
     body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
@@ -66,14 +75,20 @@ extern const char *WIFI_SSID;
 extern const char *WIFI_PASSWORD;
 const char *MDNS_ADDRESS PROGMEM = "fm-streamer";
 const char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
-const char *CONFIG_FILE_NAME PROGMEM = "/fm_streamer_config.txt";
+const char *CONFIG_FILE_NAME PROGMEM = "/cfg/fm_streamer_config.txt";
 const uint DFT_STATION PROGMEM = 0;
 const uint DFT_FREQ PROGMEM = 88100;
 const uint DFT_POWER PROGMEM = 90;
-const uint DFT_VOLUME PROGMEM = 80;
+const uint DFT_VOLUME PROGMEM = 15;
+#if defined(ESP32)
+const char LED_STREAMING PROGMEM = 2;
+const char LED_OFF PROGMEM = LOW;
+const char LED_ON PROGMEM = HIGH;
+#elif defined(ESP8266)
 const char LED_STREAMING PROGMEM = 16;
 const char LED_OFF PROGMEM = HIGH;
 const char LED_ON PROGMEM = LOW;
+#endif
 
 typedef struct {
   const char URL[128];
@@ -87,13 +102,12 @@ const Stream_t StationList[] PROGMEM = {
     {{.URL = "https://kunrstream.com:8000/live"}, {.Name = "KUNR Reno"}}};
 const uint NUM_STATIONS PROGMEM = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
-
 #if defined(ESP32)
 AsyncWebServer webserver(80);
 #endif
 FmRadio fm_radio;
-
-InternetStream stream = InternetStream(4096, &(fm_radio.i2s_input));
+InternetStream stream = InternetStream(4096, &(fm_radio.i2s_output));
+bool UseAutoVolume = true;
 
 void (*resetFunc)(void) = 0;
 
@@ -138,8 +152,6 @@ void HandlePagePost(AsyncWebServerRequest *request) {
     assert(curr_station < NUM_STATIONS);
   }
   if (request->hasParam(F("freq")), true) {
-    // Setting new freq on radio here results in a fault - not sure why. So we
-    // just store it and set it later in loop().
     uint new_freq =
         (uint)(request->getParam(F("freq"), true)->value().toFloat() * 1000);
     fm_radio.SetFreq(new_freq);
@@ -150,7 +162,10 @@ void HandlePagePost(AsyncWebServerRequest *request) {
   }
   if (request->hasParam(F("volume")), true) {
     uint volume = (uint)request->getParam(F("volume"), true)->value().toInt();
-    fm_radio.SetVolume(volume);
+    if (fm_radio.GetVolume() != volume) {
+      fm_radio.SetVolume(volume);
+      UseAutoVolume = false;
+    }
   }
   WriteConfig(curr_station, fm_radio.GetFreq(), fm_radio.GetTxPower(),
               fm_radio.GetVolume());
@@ -188,17 +203,19 @@ void WriteConfig(uint station, uint freq, uint power, uint vol) {
 #if defined(ESP32)
 String ReadConfigVal(FILE *configfile) {
   String val = "";
-  char r;
-  fgets(&r, 2, configfile);
-  while (r != ' ') {
-    val += r;
-    fgets(&r, 2, configfile);
+  val.reserve(16);
+  char r[2];
+  fgets(r, 2, configfile);
+  while (r[0] != ' ') {
+    val += r[0];
+    fgets(r, 2, configfile);
   }
   return val;
 }
 #elif defined(ESP8266)
 String ReadConfigVal(File *configfile) {
   String val = "";
+  val.reserve(16);
   char r = (char)configfile->read();
   while (r != ' ') {
     val += r;
@@ -214,9 +231,6 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  assert(ESP.getCpuFreqMHz() ==
-         160); // Clock Frequency must be 160MHz - make sure this is configured
-               // in Arduino IDE or CLI
   pinMode(LED_STREAMING, OUTPUT);
   digitalWrite(LED_STREAMING, LED_OFF);
 
@@ -231,25 +245,17 @@ void setup() {
   fm_radio.Start(RDS_STATION_NAME);
 
 #if defined(ESP32)
-  esp_vfs_spiffs_conf_t conf = {.base_path = "/",
+  esp_vfs_spiffs_conf_t conf = {.base_path = "/cfg",
                                 .partition_label = NULL,
-                                .max_files = 1,
+                                .max_files = 5,
                                 .format_if_mount_failed = true};
-  esp_err_t ret = esp_vfs_spiffs_register(&conf);
-  if (ret != ESP_OK) {
-    if (ret == ESP_FAIL) {
-      Serial.println("Failed to mount or format filesystem");
-    } else if (ret == ESP_ERR_NOT_FOUND) {
-      Serial.println("Failed to find SPIFFS partition");
-    } else {
-      Serial.printf("Failed to initialize SPIFFS (%s)\r\n",
-                    esp_err_to_name(ret));
-    }
-    return;
-  }
+  esp_vfs_spiffs_register(&conf);
+  // size_t total = 0, used = 0;
+  // esp_spiffs_info(conf.partition_label, &total, &used);
+  // Serial.printf("\r\nPartition size: total: %d, used: %d\r\n", total, used);
   struct stat st;
-  if (stat(CONFIG_FILE_NAME, &st) == 0) {
-    // Initialize config with default values
+  if (stat(CONFIG_FILE_NAME, &st) != 0) {
+    // Config doesn't exist, so initialize with default values
     Serial.println("No config found... writing defaults.");
     WriteConfig(DFT_STATION, DFT_FREQ, DFT_POWER, DFT_VOLUME);
   }
@@ -262,7 +268,7 @@ void setup() {
 #elif defined(ESP8266)
   SPIFFS.begin();
   if (!SPIFFS.exists(CONFIG_FILE_NAME)) {
-    // Initialize config with default values
+    // Config doesn't exist, so initialize with default values
     Serial.println("No config found... writing defaults.");
     WriteConfig(DFT_STATION, DFT_FREQ, DFT_POWER, DFT_VOLUME);
   }
@@ -281,11 +287,11 @@ void loop() {
     ST_STREAM_START,
     ST_STREAM_CONNECTING,
     ST_STREAMING
-  } state_ = ST_WIFI_CONNECT;
+  } state = ST_WIFI_CONNECT;
   static bool mdns_active = false;
   static unsigned long stream_start_time_ms = 0;
 
-  switch (state_) {
+  switch (state) {
   case ST_WIFI_CONNECT:
     if (WiFi.status() == WL_CONNECTED) {
 #if defined(ESP32)
@@ -301,7 +307,7 @@ void loop() {
       mdns_active = MDNS.begin(MDNS_ADDRESS);
       MDNS.addService("http", "tcp", 80);
 #endif
-      state_ = ST_STREAM_START;
+      state = ST_STREAM_START;
     }
     break;
   case ST_STREAM_START:
@@ -311,7 +317,7 @@ void loop() {
     stream.OpenUrl(StationList[curr_station].URL);
     fm_radio.SetRdsText(StationList[curr_station].Name);
     digitalWrite(LED_STREAMING, LED_OFF);
-    state_ = ST_STREAM_CONNECTING;
+    state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
@@ -319,7 +325,7 @@ void loop() {
     MDNS.update();
 #endif
     if (stream.Loop()) {
-      state_ = ST_STREAMING;
+      state = ST_STREAMING;
     } else if (millis() - stream_start_time_ms > 30000) {
       // Timed out trying to connect, try resetting
       resetFunc();
@@ -329,14 +335,20 @@ void loop() {
 #if defined(ESP8266)
     MDNS.update();
 #endif
+    static uint previous_station = curr_station;
+    if (curr_station != previous_station) {
+      // User changed station
+      previous_station = curr_station;
+      state = ST_STREAM_START;
+    }
     static unsigned long last_autovol_ms = 0;
-    if (millis() - last_autovol_ms > 5000) {
+    if ((UseAutoVolume) && (millis() - last_autovol_ms > 5000)) {
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
     digitalWrite(LED_STREAMING, LED_ON);
     if (!stream.Loop()) {
-      state_ = ST_STREAM_START;
+      state = ST_STREAM_START;
     }
     break;
   }
@@ -358,7 +370,7 @@ void loop() {
                     // cppcheck-suppress knownConditionTrueFalse
                     (mdns_active) ? (PGM_P)(".local") : "");
     Serial.print(F("\r\nStatus: "));
-    switch (state_) {
+    switch (state) {
     case ST_WIFI_CONNECT:
       Serial.print(F("Connecting to Wifi"));
       break;

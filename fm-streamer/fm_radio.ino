@@ -20,6 +20,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <assert.h>
 
 void FmRadio::Start(const char *station_id) {
+#if defined(ESP32)
+  // ESP32 I2S default pinout interferes with I2C, so we have to change it:
+  i2s_output.SetPinout(I2S_BCLK_PIN, I2S_WCLK_PIN, I2S_DATA_PIN);
+#endif
   radio_.begin();
   radio_.beginRDS();
   radio_.setRDSstation((char *)station_id);
@@ -45,7 +49,7 @@ void FmRadio::SetVolume(uint percent) {
   if (percent > 100)
     percent = 100;                            // Saturate at 100%
   float gain = (float)(4 * percent) / 100.0f; // Gain range is 0-4
-  i2s_input.SetGain(gain);
+  i2s_output.SetGain(gain);
   vol_percent_ = percent;
 }
 

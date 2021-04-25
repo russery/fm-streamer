@@ -24,11 +24,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <AudioOutputI2S.h>
 
 // Pin definition - move to BSP someday?
-const uint RESETPIN = 12;
+#if defined(ESP32)
+const uint RADIO_RESET_PIN PROGMEM = 23;
+const uint I2S_BCLK_PIN = 4;
+const uint I2S_WCLK_PIN = 17;
+const uint I2S_DATA_PIN = 16;
+#elif defined(ESP8266)
+const uint RADIO_RESET_PIN PROGMEM = 12;
+#endif
 
 class FmRadio {
 public:
-  AudioOutputI2S i2s_input;
+  AudioOutputI2S i2s_output;
 
   void Start(const char *station_id = "FM Streamer");
   void SetTxPower(uint percent);
@@ -42,7 +49,7 @@ public:
   void PowerDown(void);
   void SetRdsText(const char *text);
 
-  Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
+  Adafruit_Si4713 radio_ = Adafruit_Si4713(RADIO_RESET_PIN);
 
 private:
   uint freq_khz_ = 8810;

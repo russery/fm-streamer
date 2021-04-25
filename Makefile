@@ -3,8 +3,8 @@ SERIAL_PORT ?= /dev/cu.usbserial-0001
 BAUDRATE = 115200
 
 # Arduino CLI Fully Qualified Board Name (FQBN)
-MCU_TYPE ?= esp8266
-#MCU_TYPE ?= esp32
+#MCU_TYPE ?= esp8266
+MCU_TYPE ?= esp32
 ifeq ($(MCU_TYPE), esp8266)
 	BOARD_TYPE ?= $(MCU_TYPE):$(MCU_TYPE):nodemcuv2
 	PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json"
