@@ -37,13 +37,11 @@ public:
   int GetInputLevel(void);
   void SetFreq(uint khz);
   uint GetFreq(void);
-  void PowerDown(void);
   void SetRdsText(const char *text);
 
-  Adafruit_Si4713 radio_ = Adafruit_Si4713(RADIO_RESET_PIN);
-
 private:
-  uint freq_khz_ = 8810;
+  Adafruit_Si4713 radio_ = Adafruit_Si4713(RADIO_RESET_PIN);
+  uint freq_khz_ = 88100;
   uint txpower_percent_ = 88;
   uint vol_percent_ = 80;
 };
