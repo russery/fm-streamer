@@ -19,21 +19,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "arduino_secrets.h"
+#include "bsp.h"
 #include "fm_radio.h"
 #include "internet_stream.h"
-#include <Arduino.h>
 #if defined(ESP32)
 #include <AsyncTCP.h>
 #include <WiFi.h>
-
-// #include <esp_err.h>
-// #include <esp_log.h>
-// #include <esp_spiffs.h>
-// #include <stdio.h>
-// #include <string.h>
-// #include <sys/stat.h>
-// #include <sys/unistd.h>
-
 #include <esp_spiffs.h>
 #include <mdns.h>
 #elif defined(ESP8266)
@@ -42,8 +33,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <ESPAsyncTCP.h>
 #endif
 #include <ESPAsyncWebServer.h>
-#include <Wire.h>
-#include <assert.h>
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
@@ -80,15 +69,6 @@ const uint DFT_STATION PROGMEM = 0;
 const uint DFT_FREQ PROGMEM = 88100;
 const uint DFT_POWER PROGMEM = 90;
 const uint DFT_VOLUME PROGMEM = 15;
-#if defined(ESP32)
-const char LED_STREAMING PROGMEM = 2;
-const char LED_OFF PROGMEM = LOW;
-const char LED_ON PROGMEM = HIGH;
-#elif defined(ESP8266)
-const char LED_STREAMING PROGMEM = 16;
-const char LED_OFF PROGMEM = HIGH;
-const char LED_ON PROGMEM = LOW;
-#endif
 
 typedef struct {
   const char URL[128];
@@ -102,12 +82,13 @@ const Stream_t StationList[] PROGMEM = {
     {{.URL = "https://kunrstream.com:8000/live"}, {.Name = "KUNR Reno"}}};
 const uint NUM_STATIONS PROGMEM = sizeof(StationList) / sizeof(Stream_t);
 uint curr_station = 0;
-#if defined(ESP32)
-AsyncWebServer webserver(80);
-#endif
 FmRadio fm_radio;
 InternetStream stream = InternetStream(4096, &(fm_radio.i2s_output));
 bool UseAutoVolume = true;
+
+#if defined(ESP32)
+AsyncWebServer webserver(80);
+#endif
 
 void (*resetFunc)(void) = 0;
 
@@ -132,18 +113,15 @@ String WebpageProcessor(const String &var) {
   } else if (var == "VOL") {
     return String(fm_radio.GetVolume());
   } else if (var == "UPTIME") {
-    char buff[512] = {0};
+    char buff[128] = {0};
     unsigned long sec = millis() / 1000;
-    sprintf(buff, "    <div>Uptime: %d days %d hrs %d mins %d sec</div>\r\n",
+    sprintf(buff,
+            "    <div>Uptime: %3d days %2d hrs %2d mins %2d sec</div>\r\n",
             (uint)(sec / 86400L), (uint)(sec / 3600L) % 24,
             (uint)(sec / 60L) % 60, (uint)sec % 60);
     return String(buff);
   }
   return String();
-}
-
-void ServePage(AsyncWebServerRequest *request) {
-  request->send_P(200, "text/html", index_html, WebpageProcessor);
 }
 
 void HandlePagePost(AsyncWebServerRequest *request) {
@@ -231,14 +209,18 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  pinMode(LED_STREAMING, OUTPUT);
-  digitalWrite(LED_STREAMING, LED_OFF);
+  pinMode(LED_STREAMING_PIN, OUTPUT);
+  digitalWrite(LED_STREAMING_PIN, LED_OFF);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
 #if defined(ESP32)
-  webserver.on("/", ServePage);
-  webserver.onNotFound(ServePage); // Just direct everything to the same page
+  webserver.on("/", [](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/html", index_html, WebpageProcessor);
+  });
+  webserver.onNotFound([](AsyncWebServerRequest *request) {
+    request->send_P(200, "text/html", index_html, WebpageProcessor);
+  }); // Just direct everything to the same page
   webserver.on("/post", HTTP_POST, HandlePagePost);
 #endif
 
@@ -250,9 +232,6 @@ void setup() {
                                 .max_files = 5,
                                 .format_if_mount_failed = true};
   esp_vfs_spiffs_register(&conf);
-  // size_t total = 0, used = 0;
-  // esp_spiffs_info(conf.partition_label, &total, &used);
-  // Serial.printf("\r\nPartition size: total: %d, used: %d\r\n", total, used);
   struct stat st;
   if (stat(CONFIG_FILE_NAME, &st) != 0) {
     // Config doesn't exist, so initialize with default values
@@ -316,7 +295,7 @@ void loop() {
 #endif
     stream.OpenUrl(StationList[curr_station].URL);
     fm_radio.SetRdsText(StationList[curr_station].Name);
-    digitalWrite(LED_STREAMING, LED_OFF);
+    digitalWrite(LED_STREAMING_PIN, LED_OFF);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
     break;
@@ -346,7 +325,7 @@ void loop() {
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
-    digitalWrite(LED_STREAMING, LED_ON);
+    digitalWrite(LED_STREAMING_PIN, LED_ON);
     if (!stream.Loop()) {
       state = ST_STREAM_START;
     }

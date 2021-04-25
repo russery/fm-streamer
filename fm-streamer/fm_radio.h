@@ -20,18 +20,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef __FM_RADIO_H
 #define __FM_RADIO_H
 
+#include "bsp.h"
 #include <Adafruit_Si4713.h>
 #include <AudioOutputI2S.h>
-
-// Pin definition - move to BSP someday?
-#if defined(ESP32)
-const uint RADIO_RESET_PIN PROGMEM = 23;
-const uint I2S_BCLK_PIN = 4;
-const uint I2S_WCLK_PIN = 17;
-const uint I2S_DATA_PIN = 16;
-#elif defined(ESP8266)
-const uint RADIO_RESET_PIN PROGMEM = 12;
-#endif
 
 class FmRadio {
 public:

@@ -17,6 +17,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "fm_radio.h"
 #include <assert.h>
 
 void FmRadio::Start(const char *station_id) {
@@ -28,8 +29,6 @@ void FmRadio::Start(const char *station_id) {
   radio_.beginRDS();
   radio_.setRDSstation((char *)station_id);
 }
-
-void FmRadio::PowerDown(void) { radio_.reset(); }
 
 void FmRadio::SetTxPower(uint percent) {
   uint dbuv;

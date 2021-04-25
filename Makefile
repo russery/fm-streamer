@@ -63,8 +63,8 @@ serial: stop-serial
 	screen $(SERIAL_PORT) $(BAUDRATE)
 
 check:
-	clang-format $(SOURCE_PATH)*.ino $(SOURCE_PATH)*.h -style=file -i
-	cppcheck --suppress=missingIncludeSystem --enable=all --std=c++11 --inline-suppr --language=c++ $(SOURCE_PATH)*.ino
+	clang-format $(SOURCE_PATH)*.ino $(SOURCE_PATH)*.cpp $(SOURCE_PATH)*.h -style=file -i
+	cppcheck --suppress=missingIncludeSystem --enable=all --std=c++11 --inline-suppr --language=c++ $(SOURCE_PATH)*.ino $(SOURCE_PATH)*.cpp $(SOURCE_PATH)*.h
 
 clean:
 	@rm -rf $(BUILD_PATH)
