@@ -120,6 +120,7 @@ Webserver::Stream_t Webserver::GetCurrentStream(void) {
 }
 
 void Webserver::Start(void) {
+  cfg.Start();
 #if defined(ESP32)
   // Register server responses:
   server_.on("/", [&](AsyncWebServerRequest *request) {
@@ -140,8 +141,12 @@ void Webserver::Start(void) {
 
   // Start serving
   server_.begin();
+  #endif
+}
 
+void Webserver::StartMdns(void){
   // Start MDNS
+  #if defined(ESP32)
   mdns_init();
   mdns_hostname_set(MDNS_ADDRESS);
   mdns_active_ =

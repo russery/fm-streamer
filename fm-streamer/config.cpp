@@ -50,7 +50,7 @@ String ReadConfigVal_(File *configfile) {
 #endif // ESP32 / ESP8266
 } // namespace
 
-Config::Config(uint num_stations) : num_stations_(num_stations) {
+void Config::Start(void) {
 #if defined(ESP32)
   // Start up flash filesystem and initialize config
   esp_vfs_spiffs_conf_t conf = {.base_path = FILE_DIR,
@@ -70,7 +70,6 @@ Config::Config(uint num_stations) : num_stations_(num_stations) {
   }
   File configfile = SPIFFS.open(FILE_NAME, "r");
 #endif
-  // cppcheck-suppress useInitializationList
   station_ = ReadConfigVal_(configfile).toInt();
   freq_ = ReadConfigVal_(configfile).toInt();
   power_ = ReadConfigVal_(configfile).toInt();

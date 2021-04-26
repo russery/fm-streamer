@@ -29,11 +29,12 @@ public:
     const char Name[32];
   } Stream_t;
 
-  Config cfg;
   const char *MDNS_ADDRESS PROGMEM = "fm-streamer";
+  Config cfg;
 
-  Webserver() : server_(80){};
+  Webserver() : server_(80), cfg(num_stations_){};
   void Start(void);
+  void StartMdns(void);
   void Loop(void);
   bool IsConfigChanged(void);
   bool IsMdnsActive(void);

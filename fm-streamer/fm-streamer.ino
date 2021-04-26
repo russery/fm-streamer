@@ -34,9 +34,7 @@ extern const char *WIFI_PASSWORD;
 const char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
-InternetStream stream = InternetStream(4096, &(fm_radio.i2s_output));
-bool use_auto_volume = true;
-
+InternetStream stream(4096, &(fm_radio.i2s_output));
 Webserver webserver;
 
 void (*resetFunc)(void) = 0;
@@ -65,11 +63,13 @@ void loop() {
     ST_STREAMING
   } state = ST_WIFI_CONNECT;
   static unsigned long stream_start_time_ms = 0;
+  static bool use_auto_volume = true;
 
   switch (state) {
   case ST_WIFI_CONNECT:
     if (WiFi.status() == WL_CONNECTED) {
       state = ST_STREAM_START;
+      webserver.StartMdns();
     }
     break;
   case ST_STREAM_START:

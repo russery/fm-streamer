@@ -23,7 +23,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 class Config {
 public:
-  Config(uint num_stations = 3);
+  explicit Config(uint num_stations) : num_stations_(num_stations){};
+  void Start(void);
   uint GetStation(void) { return station_; }
   bool SetStation(uint station);
   uint GetFreqkHz(void) { return freq_; }
