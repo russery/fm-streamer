@@ -32,7 +32,7 @@ public:
   const char *MDNS_ADDRESS PROGMEM = "fm-streamer";
   Config cfg;
 
-  Webserver() : server_(80), cfg(num_stations_){};
+  Webserver() : server_(80), cfg(NUM_STATIONS){};
   void Start(void);
   void StartMdns(void);
   void Loop(void);
@@ -41,13 +41,13 @@ public:
   Stream_t GetCurrentStream(void);
 
 private:
-  const Stream_t StationList_[3] = {
+  static const uint NUM_STATIONS PROGMEM = 3;
+  const Stream_t StationList_[NUM_STATIONS] PROGMEM = {
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
       {.URL = "http://ais-edge16-jbmedia-nyc04.cdnstream.com/1power",
        .Name = "PowerHitz"},
       {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"}};
-  const uint num_stations_ = sizeof(StationList_) / sizeof(StationList_[0]);
   AsyncWebServer server_;
   bool config_changed_ = false;
   bool mdns_active_ = false;

@@ -92,8 +92,7 @@ String Webserver::WebpageProcessor_(const String &var) {
 
 void Webserver::HandlePagePost_(AsyncWebServerRequest *request) {
   if (request->hasParam(F("station")), true)
-    cfg.SetStation(
-        (uint)request->getParam(F("station"), true)->value().toInt());
+    cfg.SetStation((uint)request->getParam(F("station"), true)->value().toInt());
   if (request->hasParam(F("freq")), true)
     cfg.SetFreqMHz(request->getParam(F("freq"), true)->value().toFloat());
   if (request->hasParam(F("txpower")), true)

@@ -78,10 +78,14 @@ void loop() {
     digitalWrite(LED_STREAMING_PIN, LED_OFF);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
+    // Mute radio output while stream is starting up
+    fm_radio.SetVolume(0);
     break;
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
+      // Now that stream is up, unmute radio:
+      fm_radio.SetVolume(webserver.cfg.GetVolume());
     } else if (millis() - stream_start_time_ms > 30000) {
       // Timed out trying to connect, try resetting
       resetFunc();
