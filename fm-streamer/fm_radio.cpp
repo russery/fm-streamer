@@ -17,15 +17,18 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "fm_radio.h"
 #include <assert.h>
 
 void FmRadio::Start(const char *station_id) {
+#if defined(ESP32)
+  // ESP32 I2S default pinout interferes with I2C, so we have to change it:
+  i2s_output.SetPinout(I2S_BCLK_PIN, I2S_WCLK_PIN, I2S_DATA_PIN);
+#endif
   radio_.begin();
   radio_.beginRDS();
   radio_.setRDSstation((char *)station_id);
 }
-
-void FmRadio::PowerDown(void) { radio_.reset(); }
 
 void FmRadio::SetTxPower(uint percent) {
   uint dbuv;
@@ -43,9 +46,10 @@ uint FmRadio::GetTxPower(void) { return txpower_percent_; }
 
 void FmRadio::SetVolume(uint percent) {
   if (percent > 100)
-    percent = 100;                            // Saturate at 100%
-  float gain = (float)(4 * percent) / 100.0f; // Gain range is 0-4
-  i2s_input.SetGain(gain);
+    percent = 100; // Saturate at 100%
+  float gain = (float)(1.0f * percent) /
+               100.0f; // Gain range is 0-4, but we only need 0-1
+  i2s_output.SetGain(gain);
   vol_percent_ = percent;
 }
 
@@ -55,7 +59,7 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
   static float avg_input = target_volume;
   static float integral_error = 0;
   static float previous_error = 0;
-  const int AVG_INPUT_CYCLES = 10;
+  const int AVG_INPUT_CYCLES = 20;
   const float K_P = 5.0f;
   const float K_I = 1.0f;
   const float K_D = 0.0f;
