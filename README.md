@@ -15,7 +15,9 @@ If you're on Linux or Mac (or any system with GNU Make installed), install [ardu
 # Usage
 Once you've followed the above steps and your board is programmed, the FM Streamer should connect to your wifi network, begin streaming the first mp3 stream in `StationList` (defined in webserver.h), and automatically broadcast over FM. There is a status output on the serial console that will tell you what's going on with the board as well.
 
-I've implemented a web interface to the FM Streamer that allows you to control the station, volume, and transmit power of the FM Streamer. Note that this doesn't work on the ESP8266, as it runs out of RAM between the web server and audio streaming. However, it works well on the ESP32.
+I've implemented a web interface to the FM Streamer that allows you to control the station, volume, and transmit power of the FM Streamer. Note that this doesn't work on the ESP8266, as it runs out of RAM between the web server and audio streaming. However, it works well on the ESP32. Here's what it looks like:
+
+<img src="./docs/webpage.png" width="400" />
 
 ---
 
