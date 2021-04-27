@@ -132,7 +132,6 @@ Webserver::Stream_t Webserver::GetCurrentStream(void) {
 
 void Webserver::Start(void) {
 #if defined(ESP32)
-  // Register server responses:
   server_.on("/", [&](AsyncWebServerRequest *request) {
     request->send_P(200, "text/html", index_html,
                     [&](const String &var) -> String {
@@ -148,14 +147,11 @@ void Webserver::Start(void) {
   server_.on("/post", HTTP_POST, [&](AsyncWebServerRequest *request) -> void {
     return this->HandlePagePost_(request);
   });
-
-  // Start serving
   server_.begin();
 #endif
 }
 
 void Webserver::StartMdns(void) {
-// Start MDNS
 #if defined(ESP32)
   mdns_init();
   mdns_hostname_set(MDNS_ADDRESS);

@@ -42,7 +42,6 @@ constexpr uint RADIO_RESET_PIN PROGMEM = 12;
 constexpr char LED_STREAMING_PIN PROGMEM = 16;
 constexpr char LED_OFF PROGMEM = HIGH;
 constexpr char LED_ON PROGMEM = LOW;
-
 #endif // ESP32 / ESP8266
 
 #endif // __BSP_H

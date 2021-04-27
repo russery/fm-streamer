@@ -72,20 +72,18 @@ void loop() {
     }
     break;
   case ST_STREAM_START:
+    fm_radio.SetVolume(0); // Mute radio output while stream is starting up
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
     digitalWrite(LED_STREAMING_PIN, LED_OFF);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
-    // Mute radio output while stream is starting up
-    fm_radio.SetVolume(0);
     break;
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
     } else if (millis() - stream_start_time_ms > 30000) {
-      // Timed out trying to connect, try resetting
-      resetFunc();
+      resetFunc(); // Timed out trying to connect, try resetting
     }
     break;
   case ST_STREAMING:
@@ -146,10 +144,8 @@ void loop() {
     static uint previous_station = cfg.GetStation();
     uint curr_station = cfg.GetStation();
     if (curr_station != previous_station) {
-      // User changed station
-      previous_station = curr_station;
-      // Mute radio output while stream is starting up
-      fm_radio.SetVolume(0);
+      previous_station = curr_station; // User changed station
+      fm_radio.SetVolume(0); // Mute radio output while we close out the stream
       stream.Flush();
       state = ST_STREAM_START;
     }
@@ -159,6 +155,5 @@ void loop() {
     fm_radio.SetFreq(cfg.GetFreqkHz());
     fm_radio.SetTxPower(cfg.GetPower());
   }
-
   yield(); // Make sure WiFi can do its thing.
 }
