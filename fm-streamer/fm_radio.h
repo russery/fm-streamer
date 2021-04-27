@@ -20,15 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef __FM_RADIO_H
 #define __FM_RADIO_H
 
+#include "bsp.h"
 #include <Adafruit_Si4713.h>
 #include <AudioOutputI2S.h>
 
-// Pin definition - move to BSP someday?
-const uint RESETPIN = 12;
-
 class FmRadio {
 public:
-  AudioOutputI2S i2s_input;
+  AudioOutputI2S i2s_output;
 
   void Start(const char *station_id = "FM Streamer");
   void SetTxPower(uint percent);
@@ -39,13 +37,11 @@ public:
   int GetInputLevel(void);
   void SetFreq(uint khz);
   uint GetFreq(void);
-  void PowerDown(void);
   void SetRdsText(const char *text);
 
-  Adafruit_Si4713 radio_ = Adafruit_Si4713(RESETPIN);
-
 private:
-  uint freq_khz_ = 8810;
+  Adafruit_Si4713 radio_ = Adafruit_Si4713(RADIO_RESET_PIN);
+  uint freq_khz_ = 88100;
   uint txpower_percent_ = 88;
   uint vol_percent_ = 80;
 };

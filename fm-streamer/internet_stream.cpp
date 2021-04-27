@@ -18,28 +18,31 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#ifndef __INTERNET_STREAM_H
-#define __INTERNET_STREAM_H
+#include "internet_stream.h"
+#include <Arduino.h>
 
-#include <AudioFileSourceBuffer.h>
-#include <AudioFileSourceHTTPStream.h>
-#include <AudioGeneratorMP3.h>
-#include <AudioOutputI2S.h>
+InternetStream::InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink)
+    : out_(i2s_sink) {
+  file_ = new AudioFileSourceHTTPStream();
+  buff_ = new AudioFileSourceBuffer(file_, buffer_size_bytes);
+  // cppcheck-suppress [noOperatorEq,noCopyConstructor]
+  mp3_ = new AudioGeneratorMP3();
+}
 
-class InternetStream {
-public:
-  InternetStream(uint buffer_size_bytes, AudioOutputI2S *i2s_sink);
-  ~InternetStream();
+InternetStream::~InternetStream() {
+  delete file_;
+  delete buff_;
+  delete mp3_;
+}
 
-  void OpenUrl(const char *stream_url);
-  bool Loop(void);
-  void Flush(void);
+void InternetStream::OpenUrl(const char *stream_url) {
+  file_->open(stream_url);
+  mp3_->begin(buff_, out_);
+}
 
-private:
-  AudioGeneratorMP3 *mp3_;
-  AudioFileSourceHTTPStream *file_;
-  AudioFileSourceBuffer *buff_;
-  AudioOutputI2S *out_;
-};
+bool InternetStream::Loop(void) { return mp3_->loop(); }
 
-#endif // __INTERNET_STREAM_H
+void InternetStream::Flush(void) {
+  file_->close();
+  out_->flush();
+}
