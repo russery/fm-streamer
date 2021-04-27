@@ -23,15 +23,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "fm_radio.h"
 #include "internet_stream.h"
 #include "webserver.h"
+#include <ArduinoOTA.h>
 #if defined(ESP32)
 #include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
 #endif
 
-extern const char *WIFI_SSID;
-extern const char *WIFI_PASSWORD;
-constexpr char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
+extern const char WIFI_SSID[];
+extern const char WIFI_PASSWORD[];
+extern const char OTA_UPDATE_PWD[];
+constexpr char RDS_STATION_NAME[] = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
 InternetStream stream(2048, &(fm_radio.i2s_output));
@@ -53,6 +55,28 @@ void setup() {
   cfg.Start();
   webserver.Start();
   fm_radio.Start(RDS_STATION_NAME);
+
+  ArduinoOTA.setHostname(Webserver::MDNS_ADDRESS);
+  // ArduinoOTA.setPassword(OTA_UPDATE_PWD);
+
+  ArduinoOTA.onStart([]() { Serial.println("Start updating sketch"); })
+      .onEnd([]() { Serial.println("\nFinished Updating"); })
+      .onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      })
+      .onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+          Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+          Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+          Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+          Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+          Serial.println("End Failed");
+      });
 }
 
 void loop() {
@@ -69,6 +93,7 @@ void loop() {
     if (WiFi.status() == WL_CONNECTED) {
       state = ST_STREAM_START;
       webserver.StartMdns();
+      ArduinoOTA.begin();
     }
     break;
   case ST_STREAM_START:
@@ -155,5 +180,8 @@ void loop() {
     fm_radio.SetFreq(cfg.GetFreqkHz());
     fm_radio.SetTxPower(cfg.GetPower());
   }
+
+  ArduinoOTA.handle();
+
   yield(); // Make sure WiFi can do its thing.
 }
