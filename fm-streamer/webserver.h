@@ -17,6 +17,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+#ifndef __WEBSERVER_H
+#define __WEBSERVER_H
 
 #include "config.h"
 #include <ESPAsyncWebServer.h>
@@ -56,3 +58,5 @@ private:
   // cppcheck-suppress unusedPrivateFunction
   void HandlePagePost_(AsyncWebServerRequest *request);
 };
+
+#endif //__WEBSERVER_H
