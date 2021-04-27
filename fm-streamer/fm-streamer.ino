@@ -31,11 +31,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 extern const char *WIFI_SSID;
 extern const char *WIFI_PASSWORD;
-const char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
+constexpr char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
 InternetStream stream(2048, &(fm_radio.i2s_output));
-Webserver webserver;
+Config cfg(Webserver::NUM_STATIONS);
+Webserver webserver(&cfg);
 
 void (*resetFunc)(void) = 0;
 
@@ -49,9 +50,8 @@ void setup() {
   digitalWrite(LED_STREAMING_PIN, LED_OFF);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
+  cfg.Start();
   webserver.Start();
-
   fm_radio.Start(RDS_STATION_NAME);
 }
 
@@ -90,8 +90,8 @@ void loop() {
     break;
   case ST_STREAMING:
     static unsigned long last_autovol_ms = 0;
-    if ((webserver.cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 5000)) {
-      webserver.cfg.SetVolume(fm_radio.GetVolume()); // Update value in config
+    if ((cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 5000)) {
+      cfg.SetVolume(fm_radio.GetVolume()); // Update value in config
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
@@ -135,15 +135,16 @@ void loop() {
     }
     Serial.printf_P((PGM_P) "\r\nStation: %s",
                     webserver.GetCurrentStream().Name);
-    Serial.printf_P((PGM_P) "\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%%s",
-                    float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(),
-                    fm_radio.GetVolume(), (webserver.cfg.GetAutoVolume()) ? "(Auto)" : "");
+    Serial.printf_P(
+        (PGM_P) "\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%%s",
+        float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(),
+        fm_radio.GetVolume(), (cfg.GetAutoVolume()) ? "(Auto)" : "");
   }
 
   webserver.Loop();
   if (webserver.IsConfigChanged()) {
-    static uint previous_station = webserver.cfg.GetStation();
-    uint curr_station = webserver.cfg.GetStation();
+    static uint previous_station = cfg.GetStation();
+    uint curr_station = cfg.GetStation();
     if (curr_station != previous_station) {
       // User changed station
       previous_station = curr_station;
@@ -152,11 +153,11 @@ void loop() {
       stream.Flush();
       state = ST_STREAM_START;
     }
-    if (!webserver.cfg.GetAutoVolume()) {
-      fm_radio.SetVolume(webserver.cfg.GetVolume());
+    if (!cfg.GetAutoVolume()) {
+      fm_radio.SetVolume(cfg.GetVolume());
     }
-    fm_radio.SetFreq(webserver.cfg.GetFreqkHz());
-    fm_radio.SetTxPower(webserver.cfg.GetPower());
+    fm_radio.SetFreq(cfg.GetFreqkHz());
+    fm_radio.SetTxPower(cfg.GetPower());
   }
 
   yield(); // Make sure WiFi can do its thing.

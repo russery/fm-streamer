@@ -31,7 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #endif
 
 namespace {
-const char index_html[] PROGMEM = R"rawliteral(
+constexpr char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html><head>
   <title>FM Streamer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -69,20 +69,20 @@ String Webserver::WebpageProcessor_(const String &var) {
           "      <input type=\"radio\" id=\"station%d\" name=\"station\" "
           "value=\"%d\"%s onchange=\"this.form.submit();\">"
           "      <label for=\"station1\">%s</label><br>\r\n",
-          i, i, (i == cfg.GetStation()) ? " checked" : "",
+          i, i, (i == cfg_->GetStation()) ? " checked" : "",
           StationList_[i].Name);
     }
     return String(buff);
   } else if (var == "FREQ") {
-    return String(cfg.GetFreqMHz(), 2);
+    return String(cfg_->GetFreqMHz(), 2);
   } else if (var == "POW") {
-    return String(cfg.GetPower());
+    return String(cfg_->GetPower());
   } else if (var == "VOL") {
-    return String(cfg.GetVolume());
+    return String(cfg_->GetVolume());
   } else if (var == "VOLDISA") {
-    return (cfg.GetAutoVolume()) ? " disabled" : "";
+    return (cfg_->GetAutoVolume()) ? " disabled" : "";
   } else if (var == "AUTOVOL") {
-    return (cfg.GetAutoVolume()) ? " checked" : "";
+    return (cfg_->GetAutoVolume()) ? " checked" : "";
   } else if (var == "UPTIME") {
     char buff[128] = {0};
     unsigned long sec = millis() / 1000;
@@ -97,21 +97,22 @@ String Webserver::WebpageProcessor_(const String &var) {
 
 void Webserver::HandlePagePost_(AsyncWebServerRequest *request) {
   if (request->hasParam(F("station"), true))
-    cfg.SetStation(
+    cfg_->SetStation(
         (uint)request->getParam(F("station"), true)->value().toInt());
   if (request->hasParam(F("freq"), true))
-    cfg.SetFreqMHz(request->getParam(F("freq"), true)->value().toFloat());
+    cfg_->SetFreqMHz(request->getParam(F("freq"), true)->value().toFloat());
   if (request->hasParam(F("txpower"), true))
-    cfg.SetPower(request->getParam(F("txpower"), true)->value().toInt());
+    cfg_->SetPower(request->getParam(F("txpower"), true)->value().toInt());
   if (request->hasParam(F("volume"), true))
-    cfg.SetVolume((uint)request->getParam(F("volume"), true)->value().toInt());
+    cfg_->SetVolume(
+        (uint)request->getParam(F("volume"), true)->value().toInt());
   if (request->hasParam(F("autovol"), true)) {
-    cfg.SetAutoVolume(true); // param only present if true
+    cfg_->SetAutoVolume(true); // param only present if true
   } else {
-    cfg.SetAutoVolume(false); // param only present if true
+    cfg_->SetAutoVolume(false); // param only present if true
   }
   config_changed_ = true;
-  cfg.WriteToFlash();
+  cfg_->WriteToFlash();
   request->redirect("/");
 }
 
@@ -126,11 +127,10 @@ bool Webserver::IsConfigChanged(void) {
 }
 
 Webserver::Stream_t Webserver::GetCurrentStream(void) {
-  return StationList_[cfg.GetStation()];
+  return StationList_[cfg_->GetStation()];
 }
 
 void Webserver::Start(void) {
-  cfg.Start();
 #if defined(ESP32)
   // Register server responses:
   server_.on("/", [&](AsyncWebServerRequest *request) {

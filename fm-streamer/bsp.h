@@ -24,24 +24,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #if defined(ESP32)
 // Radio interface pins:
-const uint RADIO_RESET_PIN PROGMEM = 23;
-const uint I2S_BCLK_PIN PROGMEM = 4;
-const uint I2S_WCLK_PIN PROGMEM = 17;
-const uint I2S_DATA_PIN PROGMEM = 16;
+constexpr uint RADIO_RESET_PIN PROGMEM = 23;
+constexpr uint I2S_BCLK_PIN PROGMEM = 4;
+constexpr uint I2S_WCLK_PIN PROGMEM = 17;
+constexpr uint I2S_DATA_PIN PROGMEM = 16;
 
 // Status LED and states:
-const char LED_STREAMING_PIN PROGMEM = 2;
-const char LED_OFF PROGMEM = LOW;
-const char LED_ON PROGMEM = HIGH;
+constexpr char LED_STREAMING_PIN PROGMEM = 2;
+constexpr char LED_OFF PROGMEM = LOW;
+constexpr char LED_ON PROGMEM = HIGH;
 
 #elif defined(ESP8266)
 // Radio interface pins:
-const uint RADIO_RESET_PIN PROGMEM = 12;
+constexpr uint RADIO_RESET_PIN PROGMEM = 12;
 
 // Status LED and states:
-const char LED_STREAMING_PIN PROGMEM = 16;
-const char LED_OFF PROGMEM = HIGH;
-const char LED_ON PROGMEM = LOW;
+constexpr char LED_STREAMING_PIN PROGMEM = 16;
+constexpr char LED_OFF PROGMEM = HIGH;
+constexpr char LED_ON PROGMEM = LOW;
 
 #endif // ESP32 / ESP8266
 

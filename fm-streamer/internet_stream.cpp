@@ -42,7 +42,7 @@ void InternetStream::OpenUrl(const char *stream_url) {
 
 bool InternetStream::Loop(void) { return mp3_->loop(); }
 
-void InternetStream::Flush(void){
+void InternetStream::Flush(void) {
   file_->close();
   out_->flush();
 }
