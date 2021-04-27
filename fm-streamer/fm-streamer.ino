@@ -57,7 +57,7 @@ void setup() {
   fm_radio.Start(RDS_STATION_NAME);
 
   ArduinoOTA.setHostname(Webserver::MDNS_ADDRESS);
-  // ArduinoOTA.setPassword(OTA_UPDATE_PWD);
+  ArduinoOTA.setPassword(OTA_UPDATE_PWD);
 
   ArduinoOTA.onStart([]() { Serial.println("Start updating sketch"); })
       .onEnd([]() { Serial.println("\nFinished Updating"); })
