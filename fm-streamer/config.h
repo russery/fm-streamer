@@ -17,6 +17,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#ifndef __CONFIG_H
+#define __CONFIG_H
+
 #include "bsp.h"
 #define FILE_DIR "/cfg"
 #define FILE_NAME FILE_DIR "/fm_streamer_config.txt"
@@ -47,3 +50,5 @@ private:
   uint volume_ = 15;
   bool auto_volume_ = true;
 };
+
+#endif //__CONFIG_H

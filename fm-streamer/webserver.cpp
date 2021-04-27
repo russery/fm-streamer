@@ -37,24 +37,67 @@ constexpr char index_html[] PROGMEM = R"rawliteral(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="10">
   <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+    html {
+      font-family: Helvetica;
+      display: inline-block;
+    }
+    body {
+      position: fixed;
+      width: 300px;
+      left: 50%%;
+      transform: translateX(-50%%);
+      border: 3px solid #222222;
+      border-radius: 3%%;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-top: 0;
+    }
+    input[type=radio] + label {
+      color: #222222;
+    }
+    input[type=radio]:checked + label {
+      font-weight: bold;
+      color: initial;
+    }
+    label {
+      line-height: 150%%;
+    }
+    input[type=number] {
+      position: absolute;
+      width: 15%%;
+      left: 55%%;
+    }
+    input[type=range] {
+      position: absolute;
+      width: 45%%;
+      left: 25%%;
+    }
+    .checkbox {
+      position: absolute;
+      left: 70%%;
+      margin-left: 10px;
+    }
+    .uptime {
+      font-size: small;
+    }
   </style>
-  </head>
-  <body>
-    <h2>FM Streamer</h2>
+</head>
+<body>
+  <h2>FM STREAMER</h2>
     <form method="post" action="/post">
 %STATION-LIST%<br>
-      <label for="freq">Radio Frequency (MHz):</label>
-      <input type="number" id="freq" name="freq" min="76.0" max="108.0" step="0.1" value="%FREQ%" onchange="this.form.submit();"><br>
-      <label for="txpower">Transmit Power</label>
-      <input type="range" id="txpower" name="txpower" min="0" max="100" step="1", value="%POW%" onchange="this.form.submit();"><br>
-      <label for="txpower">Audio Volume</label>
-      <input type="range" id="volume" name="volume" min="0" max="100" step="1", value="%VOL%"%VOLDISA% onchange="this.form.submit();">
-      <input type="checkbox" id="autovol" name="autovol"%AUTOVOL% onchange="this.form.submit();"><label for="autovol">Auto</label><br>
-    </form>
+    <label for="freq">Frequency (MHz)</label>
+    <input type="number" id="freq" name="freq" min="76.0" max="108.0" step="0.1" value="%FREQ%" onchange="this.form.submit();"><br>
+    <label for="txpower">Power</label>
+    <input type="range" id="txpower" name="txpower" min="0" max="100" step="1", value="%POW%" onchange="this.form.submit();"><br>
+    <label for="txpower">Volume</label>
+    <input type="range" id="volume" name="volume" min="0" max="100" step="1", value="%VOL%"%VOLDISA% onchange="this.form.submit();">
+    <span class="checkbox"><input type="checkbox" id="autovol" name="autovol"%AUTOVOL% onchange="this.form.submit();"><label for="autovol">Auto</label></span><br>
+  </form>
 %UPTIME%
-    </body>
+</body>
 </html>
 )rawliteral";
 }
@@ -87,7 +130,8 @@ String Webserver::WebpageProcessor_(const String &var) {
     char buff[128] = {0};
     unsigned long sec = millis() / 1000;
     sprintf(buff,
-            "    <div>Uptime: %3d days %2d hrs %2d mins %2d sec</div>\r\n",
+            "    <div class=\"uptime\">Uptime: %3d days %2d hrs %2d mins %2d "
+            "sec</div>\r\n",
             (uint)(sec / 86400L), (uint)(sec / 3600L) % 24,
             (uint)(sec / 60L) % 60, (uint)sec % 60);
     return String(buff);
