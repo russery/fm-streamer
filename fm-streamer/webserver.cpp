@@ -50,7 +50,8 @@ const char index_html[] PROGMEM = R"rawliteral(
       <label for="txpower">Transmit Power</label>
       <input type="range" id="txpower" name="txpower" min="0" max="100" step="1", value="%POW%" onchange="this.form.submit();"><br>
       <label for="txpower">Audio Volume</label>
-      <input type="range" id="volume" name="volume" min="0" max="100" step="1", value="%VOL%" onchange="this.form.submit();"><br>
+      <input type="range" id="volume" name="volume" min="0" max="100" step="1", value="%VOL%"%VOLDISA% onchange="this.form.submit();">
+      <input type="checkbox" id="autovol" name="autovol"%AUTOVOL% onchange="this.form.submit();"><label for="autovol">Auto</label><br>
     </form>
 %UPTIME%
     </body>
@@ -78,6 +79,10 @@ String Webserver::WebpageProcessor_(const String &var) {
     return String(cfg.GetPower());
   } else if (var == "VOL") {
     return String(cfg.GetVolume());
+  } else if (var == "VOLDISA") {
+    return (cfg.GetAutoVolume()) ? " disabled" : "";
+  } else if (var == "AUTOVOL") {
+    return (cfg.GetAutoVolume()) ? " checked" : "";
   } else if (var == "UPTIME") {
     char buff[128] = {0};
     unsigned long sec = millis() / 1000;
@@ -91,14 +96,20 @@ String Webserver::WebpageProcessor_(const String &var) {
 }
 
 void Webserver::HandlePagePost_(AsyncWebServerRequest *request) {
-  if (request->hasParam(F("station")), true)
-    cfg.SetStation((uint)request->getParam(F("station"), true)->value().toInt());
-  if (request->hasParam(F("freq")), true)
+  if (request->hasParam(F("station"), true))
+    cfg.SetStation(
+        (uint)request->getParam(F("station"), true)->value().toInt());
+  if (request->hasParam(F("freq"), true))
     cfg.SetFreqMHz(request->getParam(F("freq"), true)->value().toFloat());
-  if (request->hasParam(F("txpower")), true)
+  if (request->hasParam(F("txpower"), true))
     cfg.SetPower(request->getParam(F("txpower"), true)->value().toInt());
-  if (request->hasParam(F("volume")), true)
+  if (request->hasParam(F("volume"), true))
     cfg.SetVolume((uint)request->getParam(F("volume"), true)->value().toInt());
+  if (request->hasParam(F("autovol"), true)) {
+    cfg.SetAutoVolume(true); // param only present if true
+  } else {
+    cfg.SetAutoVolume(false); // param only present if true
+  }
   config_changed_ = true;
   cfg.WriteToFlash();
   request->redirect("/");
@@ -140,12 +151,12 @@ void Webserver::Start(void) {
 
   // Start serving
   server_.begin();
-  #endif
+#endif
 }
 
-void Webserver::StartMdns(void){
-  // Start MDNS
-  #if defined(ESP32)
+void Webserver::StartMdns(void) {
+// Start MDNS
+#if defined(ESP32)
   mdns_init();
   mdns_hostname_set(MDNS_ADDRESS);
   mdns_active_ =

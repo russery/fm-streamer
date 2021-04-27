@@ -74,6 +74,7 @@ void Config::Start(void) {
   freq_ = ReadConfigVal_(configfile).toInt();
   power_ = ReadConfigVal_(configfile).toInt();
   volume_ = ReadConfigVal_(configfile).toInt();
+  auto_volume_ = (bool)ReadConfigVal_(configfile).toInt();
 #if defined(ESP32)
   fclose(configfile);
 #elif defined(ESP8266)
@@ -87,13 +88,15 @@ void Config::WriteToFlash(void) {
   if (stat(FILE_NAME, &st) == 0)
     unlink(FILE_NAME);
   FILE *configfile = fopen(FILE_NAME, "w");
-  fprintf(configfile, "%d %d %d %d ", station_, freq_, power_, volume_);
+  fprintf(configfile, "%d %d %d %d %d ", station_, freq_, power_, volume_,
+          (int)auto_volume_);
   fclose(configfile);
 #elif defined(ESP8266)
   if (SPIFFS.exists(FILE_NAME))
     SPIFFS.remove(FILE_NAME);
   File configfile = SPIFFS.open(FILE_NAME, "w");
-  configfile.printf("%d %d %d %d ", station_, freq_, power_, volume_);
+  configfile.printf("%d %d %d %d %d ", station_, freq_, power_, volume_,
+                    (int)auto_volume_);
   configfile.close();
 #endif // ESP32 / ESP8266
 }

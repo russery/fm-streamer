@@ -34,7 +34,7 @@ extern const char *WIFI_PASSWORD;
 const char *RDS_STATION_NAME = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
-InternetStream stream(4096, &(fm_radio.i2s_output));
+InternetStream stream(2048, &(fm_radio.i2s_output));
 Webserver webserver;
 
 void (*resetFunc)(void) = 0;
@@ -63,7 +63,6 @@ void loop() {
     ST_STREAMING
   } state = ST_WIFI_CONNECT;
   static unsigned long stream_start_time_ms = 0;
-  static bool use_auto_volume = true;
 
   switch (state) {
   case ST_WIFI_CONNECT:
@@ -84,8 +83,6 @@ void loop() {
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
-      // Now that stream is up, unmute radio:
-      fm_radio.SetVolume(webserver.cfg.GetVolume());
     } else if (millis() - stream_start_time_ms > 30000) {
       // Timed out trying to connect, try resetting
       resetFunc();
@@ -93,7 +90,8 @@ void loop() {
     break;
   case ST_STREAMING:
     static unsigned long last_autovol_ms = 0;
-    if ((use_auto_volume) && (millis() - last_autovol_ms > 5000)) {
+    if ((webserver.cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 5000)) {
+      webserver.cfg.SetVolume(fm_radio.GetVolume()); // Update value in config
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
@@ -137,9 +135,9 @@ void loop() {
     }
     Serial.printf_P((PGM_P) "\r\nStation: %s",
                     webserver.GetCurrentStream().Name);
-    Serial.printf_P((PGM_P) "\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%",
+    Serial.printf_P((PGM_P) "\r\nFreq: %5.2fMHz  Power: %3d%%   Volume: %3d%%%s",
                     float(fm_radio.GetFreq()) / 1000.0f, fm_radio.GetTxPower(),
-                    fm_radio.GetVolume());
+                    fm_radio.GetVolume(), (webserver.cfg.GetAutoVolume()) ? "(Auto)" : "");
   }
 
   webserver.Loop();
@@ -149,13 +147,13 @@ void loop() {
     if (curr_station != previous_station) {
       // User changed station
       previous_station = curr_station;
+      // Mute radio output while stream is starting up
+      fm_radio.SetVolume(0);
+      stream.Flush();
       state = ST_STREAM_START;
     }
-    // If volume has been changed, disable autovolume
-    uint volume = webserver.cfg.GetVolume();
-    if (fm_radio.GetVolume() != volume) {
-      fm_radio.SetVolume(volume);
-      use_auto_volume = false;
+    if (!webserver.cfg.GetAutoVolume()) {
+      fm_radio.SetVolume(webserver.cfg.GetVolume());
     }
     fm_radio.SetFreq(webserver.cfg.GetFreqkHz());
     fm_radio.SetTxPower(webserver.cfg.GetPower());

@@ -35,6 +35,8 @@ public:
   bool SetPower(uint power);
   uint GetVolume(void) { return volume_; }
   bool SetVolume(uint volume);
+  bool GetAutoVolume(void) { return auto_volume_; }
+  void SetAutoVolume(bool autovol) { auto_volume_ = autovol; }
   void WriteToFlash(void);
 
 private:
@@ -43,4 +45,5 @@ private:
   uint freq_ = 88100;
   uint power_ = 90;
   uint volume_ = 15;
+  bool auto_volume_ = true;
 };

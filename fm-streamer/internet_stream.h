@@ -33,10 +33,11 @@ public:
 
   void OpenUrl(const char *stream_url);
   bool Loop(void);
+  void Flush(void);
 
 private:
   AudioGeneratorMP3 *mp3_;
-  AudioFileSourceHTTPStream *file_; // AudioFileSourceICYStream *file_;
+  AudioFileSourceHTTPStream *file_;
   AudioFileSourceBuffer *buff_;
   AudioOutputI2S *out_;
 };

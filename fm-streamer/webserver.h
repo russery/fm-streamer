@@ -45,11 +45,11 @@ private:
   const Stream_t StationList_[NUM_STATIONS] PROGMEM = {
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
+      {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"},
       {.URL = "http://ais-edge16-jbmedia-nyc04.cdnstream.com/1power",
-       .Name = "PowerHitz"},
-      {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"}};
+       .Name = "PowerHitz"}};
   AsyncWebServer server_;
-  bool config_changed_ = false;
+  bool config_changed_ = true;
   bool mdns_active_ = false;
 
   // cppcheck-suppress unusedPrivateFunction
