@@ -190,7 +190,7 @@ void Si4713::ReadASQStatus(void) {
   CurrASQ = Wire.read();
   Wire.read();
   Wire.read();
-  CurrInLevel = Wire.read();
+  CurrInLevel = (int8_t)Wire.read();
 }
 
 void Si4713::ReadTuneStatus(void) {

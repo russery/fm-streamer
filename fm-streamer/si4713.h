@@ -48,7 +48,7 @@ public:
   uint CurrAntCap;
   uint CurrNoiseLevel;
   uint CurrASQ;
-  uint CurrInLevel;
+  int CurrInLevel;
 
   void SetGPIO(uint x);
   void SetGPIOCtrl(uint x);

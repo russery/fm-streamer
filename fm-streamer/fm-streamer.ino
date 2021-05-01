@@ -99,7 +99,7 @@ void loop() {
     break;
   case ST_STREAM_START:
     // fm_radio.SetInputEnable(false); // Disable I2S input
-    fm_radio.SetVolume(0); // Mute radio output while stream is starting up
+    fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
     digitalWrite(LED_STREAMING_PIN, LED_OFF);
@@ -109,7 +109,7 @@ void loop() {
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
-      fm_radio.SetVolume(cfg.GetVolume()); // Allow radio to turn back on
+      fm_radio.SetTxPower(cfg.GetPower()); // Allow radio to turn back on
       // fm_radio.SetInputEnable(true); // Enable I2S input
     } else if (millis() - stream_start_time_ms > 30000) {
       resetFunc(); // Timed out trying to connect, try resetting
@@ -117,7 +117,7 @@ void loop() {
     break;
   case ST_STREAMING:
     static unsigned long last_autovol_ms = 0;
-    if ((cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 5000)) {
+    if ((cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 1000)) {
       cfg.SetVolume(fm_radio.GetVolume()); // Update value in config
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
@@ -174,7 +174,7 @@ void loop() {
     uint curr_station = cfg.GetStation();
     if (curr_station != previous_station) {
       previous_station = curr_station; // User changed station
-      fm_radio.SetVolume(0); // Mute radio output while we close out the stream
+      fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
       stream.Flush();
       state = ST_STREAM_START;
     }

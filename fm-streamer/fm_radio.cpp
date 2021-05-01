@@ -53,8 +53,9 @@ uint FmRadio::GetTxPower(void) { return txpower_percent_; }
 
 void FmRadio::SetVolume(uint percent) {
   if (percent > 100)
-    percent = 100;                               // Saturate at 100%
-  float gain = (float)(1.0f * percent) / 100.0f; // Gain range is 0-4, but we're only using 0-1
+    percent = 100; // Saturate at 100%
+  float gain = (float)(1.5f * percent) /
+               100.0f; // Gain range is 0-4, but we're only using 0-1.5
   i2s_output.SetGain(gain);
   vol_percent_ = percent;
 }
@@ -65,9 +66,9 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
   static float avg_input = target_volume;
   static float integral_error = 0;
   static float previous_error = 0;
-  const int AVG_INPUT_CYCLES = 20;
-  const float K_P = 5.0f;
-  const float K_I = 1.0f;
+  const uint AVG_INPUT_CYCLES = 10;
+  const float K_P = 0.5f;
+  const float K_I = 0.1f;
   const float K_D = 0.0f;
   const float INT_SAT_VAL = 10.0f;
 
@@ -87,13 +88,15 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
   float derivative_error = error - previous_error;
   previous_error = error;
 
-  uint newvolume = (uint)(error * K_P) + (uint)(integral_error * K_I) +
-                   (uint)(derivative_error * K_D);
+  uint newvolume =
+      (uint)(error * K_P + integral_error * K_I + derivative_error * K_D) +
+      GetVolume();
 
   SetVolume(newvolume);
-  Serial.printf("\r\nAvg Input: %3.2f flags: %x vol: %d inlvl: %d int: %f",
-  avg_input, radio_.CurrASQ, GetVolume(), radio_.CurrInLevel,
-  integral_error);
+  Serial.printf(
+      "\r\nAvg Input: %3.2f flags: %x vol: %d error: %f inlvl: %d int: %f",
+      avg_input, radio_.CurrASQ, GetVolume(), error, radio_.CurrInLevel,
+      integral_error);
 }
 
 int FmRadio::GetInputLevel(void) {
