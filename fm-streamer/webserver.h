@@ -46,8 +46,8 @@ private:
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
       {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"},
-      {.URL = "http://ais-edge16-jbmedia-nyc04.cdnstream.com/1power",
-       .Name = "PowerHitz"}};
+      {.URL = "http://stream.live.vc.bbcmedia.co.uk/bbc_world_service",
+       .Name = "BBC World Service"}};
   Config *cfg_;
   AsyncWebServer server_;
   bool config_changed_ = true;

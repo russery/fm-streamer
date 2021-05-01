@@ -124,6 +124,7 @@ void loop() {
     }
     digitalWrite(LED_STREAMING_PIN, LED_ON);
     if (!stream.Loop()) {
+      stream.Flush();
       state = ST_STREAM_START;
     }
     break;
