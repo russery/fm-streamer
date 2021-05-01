@@ -36,7 +36,7 @@ extern const char OTA_UPDATE_PWD[];
 constexpr char RDS_STATION_NAME[] = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
-InternetStream stream(2048, &(fm_radio.i2s_output));
+InternetStream stream(8192, &(fm_radio.i2s_output));
 Config cfg(Webserver::NUM_STATIONS);
 Webserver webserver(&cfg);
 
