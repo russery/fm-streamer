@@ -25,7 +25,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-constexpr uint SI4710_ADDR PROGMEM = 0x11;
+constexpr uint SI4710_ADDR PROGMEM = 0x63;
 constexpr uint SI4710_STATUS_CTS PROGMEM = 0x80;
 
 constexpr uint CMD_POWER_UP PROGMEM = 0x01;
@@ -79,6 +79,12 @@ constexpr uint PROP_TX_RDS_MESSAGE_COUNT PROGMEM = 0x2C05;
 constexpr uint PROP_TX_RDS_PS_AF PROGMEM = 0x2C06;
 constexpr uint PROP_TX_RDS_FIFO_SIZE PROGMEM = 0x2C07;
 
+void RequestBytes_(uint num_bytes) {
+  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)num_bytes);
+  while (Wire.available() < num_bytes)
+    yield();
+}
+
 void Si4713::SendCommand_(uint len) {
   Wire.beginTransmission((uint8_t)SI4710_ADDR);
   for (uint8_t i = 0; i < len; i++) {
@@ -88,7 +94,7 @@ void Si4713::SendCommand_(uint len) {
   // Wait for status CTS bit, indicating command is complete:
   uint8_t status = 0;
   while (!(status & SI4710_STATUS_CTS)) {
-    Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)1);
+    RequestBytes_(1);
     status = Wire.read();
   }
 }
@@ -109,6 +115,7 @@ bool Si4713::Start(bool use_i2s_input) {
   digitalWrite(reset_pin_, LOW);
   delay(1);
   digitalWrite(reset_pin_, HIGH);
+  delay(1);
 
   cmd_buff_[0] = CMD_POWER_UP;
   // CTS interrupt disabled, GPO2 output disabled, boot normally, enable
@@ -130,7 +137,7 @@ bool Si4713::Start(bool use_i2s_input) {
   cmd_buff_[0] = CMD_GET_REV;
   cmd_buff_[1] = 0;
   SendCommand_(2);
-  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)2);
+  RequestBytes_(2);
   Wire.read();
   return (Wire.read() == 13); // Good read from chip if we get Si47"13"
 }
@@ -157,7 +164,7 @@ void Si4713::TuneFM(uint freq_kHz) {
 
   // Wait for Seek/Tune Complete (STC) bit to be set:
   while ((GetStatus_() & 0x81) != 0x81)
-    delay(1);
+    yield();
 }
 
 void Si4713::SetTXpower(uint pwr, uint antcap) {
@@ -170,7 +177,7 @@ void Si4713::SetTXpower(uint pwr, uint antcap) {
 
   // Wait for Seek/Tune Complete (STC) bit to be set:
   while ((GetStatus_() & 0x81) != 0x81)
-    delay(1);
+    yield();
 }
 
 void Si4713::ReadASQStatus(void) {
@@ -178,8 +185,7 @@ void Si4713::ReadASQStatus(void) {
   cmd_buff_[1] = 0x1;
   SendCommand_(2);
 
-  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)5);
-
+  RequestBytes_(5);
   Wire.read();
   CurrASQ = Wire.read();
   Wire.read();
@@ -192,7 +198,7 @@ void Si4713::ReadTuneStatus(void) {
   cmd_buff_[1] = 0x1;
   SendCommand_(2);
 
-  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)8);
+  RequestBytes_(8);
 
   Wire.read();
   Wire.read();
@@ -219,7 +225,7 @@ void Si4713::ReadTuneMeasure(uint freq_kHz) {
   SendCommand_(5);
 
   while (GetStatus_() != 0x81)
-    delay(1);
+    yield();
 }
 
 void Si4713::BeginRDS(uint programID) {
@@ -268,13 +274,13 @@ void Si4713::SetRDSbuffer(char *s) {
     cmd_buff_[3] = i;
     SendCommand_(8);
   }
-  //SetProperty_(PROP_TX_COMPONENT_ENABLE, 0x0007); // stereo, pilot+rds
+  // SetProperty_(PROP_TX_COMPONENT_ENABLE, 0x0007); // stereo, pilot+rds
 }
 
 uint Si4713::GetStatus_(void) {
   Wire.beginTransmission((uint8_t)SI4710_ADDR);
   Wire.write(CMD_GET_INT_STATUS);
   Wire.endTransmission();
-  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)1);
+  RequestBytes_(1);
   return Wire.read();
 }
