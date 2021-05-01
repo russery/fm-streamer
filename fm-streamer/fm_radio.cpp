@@ -25,9 +25,16 @@ void FmRadio::Start(const char *station_id) {
   // ESP32 I2S default pinout interferes with I2C, so we have to change it:
   i2s_output.SetPinout(I2S_BCLK_PIN, I2S_WCLK_PIN, I2S_DATA_PIN);
 #endif
-  radio_.begin();
-  radio_.beginRDS();
-  radio_.setRDSstation((char *)station_id);
+  radio_.Start();
+  radio_.BeginRDS();
+  radio_.SetRDSstation((char *)station_id);
+}
+
+void FmRadio::SetInputEnable(bool enabled) {
+  if (enabled)
+    radio_.EnableI2SInput();
+  else
+    radio_.DisableI2SInput();
 }
 
 void FmRadio::SetTxPower(uint percent) {
@@ -38,7 +45,7 @@ void FmRadio::SetTxPower(uint percent) {
     dbuv = 0; // Turn off if 0%
   else
     dbuv = ((120 - 88) * percent / 100) + 88; // 88-120dBuV is valid range
-  radio_.setTXpower(dbuv);
+  radio_.SetTXpower(dbuv);
   txpower_percent_ = percent;
 }
 
@@ -86,24 +93,21 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
 
   SetVolume(newvolume);
   // Serial.printf("\r\nAvg Input: %3.2f flags: %x vol: %d inlvl: %d int: %f",
-  // avg_input, radio_.currASQ, GetVolume(), radio_.currInLevel,
+  // avg_input, radio_.CurrASQ, GetVolume(), radio_.CurrInLevel,
   // integral_error);
 }
 
 int FmRadio::GetInputLevel(void) {
-  radio_.readASQ();
-  return radio_.currInLevel;
+  radio_.ReadASQStatus();
+  return radio_.CurrInLevel;
 }
 
 void FmRadio::SetFreq(uint khz) {
   if (khz > 108000)
     khz = 108000; // Saturate at 108MHz
   else if (khz < 76000)
-    khz = 76000;          // Saturate at 76MHz
-  khz = khz - (khz % 50); // Ensure we're aligned on 50kHz boundaries
-  radio_.tuneFM(
-      khz /
-      10); // Despite Adafruit library var name, chip expects units of 10kHz
+    khz = 76000; // Saturate at 76MHz
+  radio_.TuneFM(khz);
   freq_khz_ = khz;
 }
 
@@ -112,5 +116,5 @@ uint FmRadio::GetFreq(void) { return freq_khz_; }
 void FmRadio::SetRdsText(const char *text) {
   char temp_buff[64];
   strncpy_P(temp_buff, text, sizeof(temp_buff));
-  radio_.setRDSbuffer(temp_buff);
+  radio_.SetRDSbuffer(temp_buff);
 }
