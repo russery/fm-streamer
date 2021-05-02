@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name ESP32-DEVKITC-32D)(type Legacy)(uri ${KIPRJMOD}/resources/ESP32-DEVKITC-32D/ESP32-DEVKITC-32D.lib)(options "")(descr ""))
+  (lib (name SI4721)(type Legacy)(uri ${KIPRJMOD}/resources/SI4721/SI4721.lib)(options "")(descr ""))
+)
