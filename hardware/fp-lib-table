@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name esp32_devkit_v1_doit)(type KiCad)(uri ${KIPRJMOD}/resources/kicad-master/footprints/esp32_devkit_v1_doit.pretty)(options "")(descr ""))
+  (lib (name footprints)(type KiCad)(uri ${KIPRJMOD}/resources/ul_PCM1772PWR/KiCAD/2021-05-02_19-16-46/footprints.pretty)(options "")(descr ""))
+  (lib (name SI4721)(type KiCad)(uri ${KIPRJMOD}/resources/SI4721)(options "")(descr ""))
+)

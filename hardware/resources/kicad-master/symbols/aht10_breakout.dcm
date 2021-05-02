@@ -1,0 +1,8 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP AHT10_breakout
+D Humidity and temperature sensor
+K sensor, temperature, humidity, I2C
+$ENDCMP
+#
+#End Doc Library

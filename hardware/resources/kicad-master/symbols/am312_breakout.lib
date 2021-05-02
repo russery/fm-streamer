@@ -1,0 +1,22 @@
+EESchema-LIBRARY Version 2.4
+#encoding utf-8
+#
+# AM312_breakout
+#
+DEF AM312_breakout U 0 40 Y Y 1 F N
+F0 "U" -150 250 50 H V C CNN
+F1 "AM312_breakout" 350 250 50 H V C CNN
+F2 "AM312_breakout:am312_breakout" 0 -250 50 H I C CNN
+F3 "" 0 0 50 H I C CNN
+$FPLIST
+ AM312?breakout*
+$ENDFPLIST
+DRAW
+S -200 200 250 -200 1 1 0 f
+X VCC 1 0 300 100 D 50 50 1 1 W
+X OUT 2 350 0 100 L 50 50 1 1 O
+X GND 3 0 -300 100 U 50 50 1 1 W
+ENDDRAW
+ENDDEF
+#
+#End Library

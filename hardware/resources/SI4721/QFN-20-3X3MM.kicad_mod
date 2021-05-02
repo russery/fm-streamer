@@ -1,6 +1,6 @@
 
 (module QFN-20-3X3MM (layer F.Cu) (tedit 608D8A47)
-  (descr "<h3>20-Pin QFN Package 3 x 3 mm</h3><p>Used by Silicon Labs Si470x (Si4703, Si4707, etc.) FM Recievier</p><p><a href="https://cdn.sparkfun.com/assets/learn_tutorials/2/7/4/Si4703_datasheet.pdf">Example Datasheet</a></p>")
+  (descr "Used by Silicon Labs Si470x FM Receiver")
   (fp_text reference REF** (at 0.0 -2.2098 0) (layer F.SilkS)
     (effects (font (size 0.48 0.48) (thickness 0.015)))
   )
