@@ -455,7 +455,7 @@ Text GLabel 7400 2850 2    50   BiDi ~ 0
 I2C_SCK
 Text GLabel 7400 2950 2    50   BiDi ~ 0
 I2C_SDA
-Text GLabel 5400 5350 2    50   Output ~ 0
+Text GLabel 5400 4350 2    50   Output ~ 0
 RADIO_~RST~
 $Comp
 L Device:R_Small R18
@@ -758,7 +758,7 @@ U 1 1 60B0FCFF
 P 10050 3200
 F 0 "TP1" H 10108 3272 50  0000 L CNN
 F 1 "TestPoint" H 10108 3227 50  0001 L CNN
-F 2 "TestPoint:TestPoint_Plated_Hole_D2.0mm" H 10250 3200 50  0001 C CNN
+F 2 "TestPoint:TestPoint_THTPad_D2.0mm_Drill1.0mm" H 10250 3200 50  0001 C CNN
 F 3 "~" H 10250 3200 50  0001 C CNN
 F 4 "~" H 10050 3200 50  0001 C CNN "MFG"
 F 5 "~" H 10050 3200 50  0001 C CNN "MPN"
@@ -1029,7 +1029,7 @@ Wire Wire Line
 Wire Wire Line
 	4850 5150 5400 5150
 Wire Wire Line
-	5400 5350 4850 5350
+	5400 4350 4850 4350
 Wire Wire Line
 	6900 4000 6350 4000
 Wire Wire Line
@@ -1058,10 +1058,10 @@ Wire Wire Line
 	6900 4350 6350 4350
 Text Label 6350 4350 0    50   ~ 0
 RAD_CLK_R
-Text Label 5400 3950 2    50   ~ 0
+Text Label 5400 5550 2    50   ~ 0
 RAD_CLK_R
 Wire Wire Line
-	5400 3950 4850 3950
+	5400 5550 4850 5550
 Connection ~ 7350 4350
 Wire Wire Line
 	7350 4350 7400 4350
@@ -1560,17 +1560,17 @@ Connection ~ 7350 5750
 Wire Wire Line
 	7350 5750 7400 5750
 Text GLabel 7400 5750 2    50   Output ~ 0
-SPI_CS
+SPI_~CS~
 Text Label 5400 5250 2    50   ~ 0
 SPI_MOSI_R
 Text Label 5400 4850 2    50   ~ 0
 SPI_CLK_R
 Text Label 5400 4150 2    50   ~ 0
 SPI_CS_R
-Text GLabel 5400 5550 2    50   Output ~ 0
+Text GLabel 5400 5850 2    50   Output ~ 0
 DAC_~RST~
 Wire Wire Line
-	4850 5550 5400 5550
+	4850 5850 5400 5850
 $Comp
 L Device:C_Small C19
 U 1 1 61268582

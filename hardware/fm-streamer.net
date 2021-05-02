@@ -1,7 +1,7 @@
 (export (version D)
   (design
     (source /Users/berto/fm-streamer/hardware/fm-streamer.sch)
-    (date "Sunday, May 02, 2021 at 01:15:28 PM")
+    (date "Sunday, May 02, 2021 at 02:17:52 PM")
     (tool "Eeschema (5.1.9-0-10_14)")
     (sheet (number 1) (name /) (tstamps /)
       (title_block
@@ -228,7 +228,7 @@
       (tstamp 60AFF58F))
     (comp (ref TP1)
       (value TestPoint)
-      (footprint TestPoint:TestPoint_Plated_Hole_D2.0mm)
+      (footprint TestPoint:TestPoint_THTPad_D2.0mm_Drill1.0mm)
       (datasheet ~)
       (fields
         (field (name MFG) ~)
