@@ -134,11 +134,11 @@ Wire Wire Line
 Wire Wire Line
 	9550 7200 9550 7150
 Wire Wire Line
-	11500 6150 10700 6150
+	11500 6150 11300 6150
 Wire Wire Line
-	11500 6350 10700 6350
+	11500 6350 11300 6350
 Wire Wire Line
-	11500 6250 10700 6250
+	11500 6250 11300 6250
 $Comp
 L Device:R_Small R13
 U 1 1 6093F8E8
@@ -315,7 +315,7 @@ Wire Wire Line
 Text GLabel 11250 3950 0    50   BiDi ~ 0
 I2C_SDA
 Text GLabel 11250 3850 0    50   BiDi ~ 0
-I2C_SCK
+I2C_SCL
 Wire Wire Line
 	11250 3950 11800 3950
 Wire Wire Line
@@ -452,11 +452,9 @@ Wire Wire Line
 Wire Wire Line
 	7100 3300 7350 3300
 Text GLabel 7400 2850 2    50   BiDi ~ 0
-I2C_SCK
+I2C_SCL
 Text GLabel 7400 2950 2    50   BiDi ~ 0
 I2C_SDA
-Text GLabel 5400 4350 2    50   Output ~ 0
-RADIO_~RST~
 $Comp
 L Device:R_Small R18
 U 1 1 60A34B02
@@ -1010,10 +1008,10 @@ Wire Wire Line
 NoConn ~ 3650 3650
 NoConn ~ 3650 3850
 NoConn ~ 3650 3950
-Text Label 5400 5150 2    50   ~ 0
-I2C_SCK
+Text Label 5400 5550 2    50   ~ 0
+I2C_SCL
 Text Label 6450 2850 0    50   ~ 0
-I2C_SCK
+I2C_SCL
 Wire Wire Line
 	6450 2850 7250 2850
 Connection ~ 7250 2850
@@ -1022,14 +1020,8 @@ Wire Wire Line
 Connection ~ 6950 2950
 Text Label 6450 2950 0    50   ~ 0
 I2C_SDA
-Text Label 5400 5050 2    50   ~ 0
-I2C_SDA
 Wire Wire Line
-	4850 5050 5400 5050
-Wire Wire Line
-	4850 5150 5400 5150
-Wire Wire Line
-	5400 4350 4850 4350
+	4850 5550 5400 5550
 Wire Wire Line
 	6900 4000 6350 4000
 Wire Wire Line
@@ -1042,14 +1034,10 @@ Text Label 6350 3650 0    50   ~ 0
 I2S_DATA_R
 Text Label 6350 4000 0    50   ~ 0
 I2S_DCLK_R
-Text Label 5400 4050 2    50   ~ 0
-I2S_DCLK_R
-Wire Wire Line
-	5400 4050 4850 4050
-Text Label 5400 4650 2    50   ~ 0
+Text Label 5400 4850 2    50   ~ 0
 I2S_DATA_R
 Wire Wire Line
-	5400 4650 4850 4650
+	5400 4850 4850 4850
 Text Label 5400 4750 2    50   ~ 0
 I2S_WCLK_R
 Wire Wire Line
@@ -1058,10 +1046,10 @@ Wire Wire Line
 	6900 4350 6350 4350
 Text Label 6350 4350 0    50   ~ 0
 RAD_CLK_R
-Text Label 5400 4250 2    50   ~ 0
+Text Label 5400 5350 2    50   ~ 0
 RAD_CLK_R
 Wire Wire Line
-	5400 4250 4850 4250
+	5400 5350 4850 5350
 Connection ~ 7350 4350
 Wire Wire Line
 	7350 4350 7400 4350
@@ -1393,18 +1381,16 @@ Wire Wire Line
 	7350 4700 7400 4700
 Text GLabel 7400 4700 2    50   Output ~ 0
 DAC_REFCLK
-Text Label 5400 3750 2    50   ~ 0
+Text Label 5400 5850 2    50   ~ 0
 DAC_CLK_R
 Wire Wire Line
-	4850 3750 5400 3750
+	4850 5850 5400 5850
 Wire Wire Line
-	4850 5250 5400 5250
+	4850 5750 5400 5750
 Wire Wire Line
-	4850 4950 5400 4950
+	4850 5650 5400 5650
 Wire Wire Line
-	4850 4850 5400 4850
-Wire Wire Line
-	4850 4150 5400 4150
+	4850 5950 5400 5950
 $Comp
 L Device:R_Small R9
 U 1 1 611C4112
@@ -1561,16 +1547,10 @@ Wire Wire Line
 	7350 5750 7400 5750
 Text GLabel 7400 5750 2    50   Output ~ 0
 SPI_~CS~
-Text Label 5400 5250 2    50   ~ 0
+Text Label 5400 5750 2    50   ~ 0
 SPI_MOSI_R
-Text Label 5400 4850 2    50   ~ 0
+Text Label 5400 5650 2    50   ~ 0
 SPI_CLK_R
-Text Label 5400 4150 2    50   ~ 0
-SPI_CS_R
-Text GLabel 5400 5850 2    50   Output ~ 0
-DAC_~RST~
-Wire Wire Line
-	4850 5850 5400 5850
 $Comp
 L Device:C_Small C19
 U 1 1 61268582
@@ -1601,4 +1581,68 @@ Wire Wire Line
 	13500 6000 13400 6000
 Wire Wire Line
 	13400 6000 13400 5950
+Text Label 5400 5950 2    50   ~ 0
+SPI_CS_R
+Wire Wire Line
+	5400 4650 4850 4650
+Text Label 5400 4650 2    50   ~ 0
+I2S_DCLK_R
+NoConn ~ 4850 3850
+NoConn ~ 4850 4050
+NoConn ~ 4850 4150
+NoConn ~ 4850 4250
+NoConn ~ 4850 4550
+NoConn ~ 4850 3750
+NoConn ~ 4850 4450
+Wire Wire Line
+	5400 4350 4850 4350
+Text GLabel 5400 4350 2    50   Output ~ 0
+RADIO_~RST~
+Wire Wire Line
+	4850 5450 5400 5450
+Text Label 5400 5450 2    50   ~ 0
+I2C_SDA
+$Comp
+L Device:R_Small R28
+U 1 1 61682B52
+P 11200 6150
+F 0 "R28" V 11150 6000 50  0000 C CNN
+F 1 "0" V 11150 6300 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 11200 6150 50  0001 C CNN
+F 3 "~" H 11200 6150 50  0001 C CNN
+	1    11200 6150
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	11100 6150 10700 6150
+$Comp
+L Device:R_Small R29
+U 1 1 61683E88
+P 11200 6250
+F 0 "R29" V 11150 6100 50  0000 C CNN
+F 1 "0" V 11150 6400 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 11200 6250 50  0001 C CNN
+F 3 "~" H 11200 6250 50  0001 C CNN
+	1    11200 6250
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	11100 6250 10700 6250
+$Comp
+L Device:R_Small R30
+U 1 1 61684267
+P 11200 6350
+F 0 "R30" V 11150 6200 50  0000 C CNN
+F 1 "0" V 11150 6500 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" H 11200 6350 50  0001 C CNN
+F 3 "~" H 11200 6350 50  0001 C CNN
+	1    11200 6350
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	11100 6350 10700 6350
+Wire Wire Line
+	4850 5050 5400 5050
+Text GLabel 5400 5050 2    50   Output ~ 0
+DAC_~RST~
 $EndSCHEMATC
