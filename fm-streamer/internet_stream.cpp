@@ -45,4 +45,5 @@ bool InternetStream::Loop(void) { return mp3_->loop(); }
 void InternetStream::Flush(void) {
   file_->close();
   out_->flush();
+  mp3_->stop();
 }

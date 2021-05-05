@@ -16,7 +16,7 @@ else ifeq ($(MCU_TYPE), esp32)
 	GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/AsyncTCP.git
 	BOARD_OPTIONS ?=
 endif
-LIBRARIES ?= ESP8266Audio@1.9.0 "Adafruit Si4713 Library" # Add extra libraries in a space-separated list
+LIBRARIES ?= ESP8266Audio # Add extra libraries in a space-separated list
 
 PROJECT_BASE = fm-streamer
 PROJECT ?= fm-streamer
