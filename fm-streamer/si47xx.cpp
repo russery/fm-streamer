@@ -20,7 +20,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "si4713.h"
+#include "si47xx.h"
 #include <Wire.h>
 
 #define min(a, b) ((a) < (b) ? (a) : (b))

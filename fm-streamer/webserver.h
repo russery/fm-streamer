@@ -42,7 +42,7 @@ public:
   Stream_t GetCurrentStream(void);
 
 private:
-  const Stream_t StationList_[NUM_STATIONS] PROGMEM = {
+  const Stream_t StationList_[NUM_STATIONS] = {
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
       {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"},

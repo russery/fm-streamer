@@ -1,10 +1,19 @@
 # Board serial port for upload
 SERIAL_PORT ?= /dev/cu.usbserial-0001
-BAUDRATE = 115200
+BAUDRATE ?= 115200
 
-# Arduino CLI Fully Qualified Board Name (FQBN)
-#MCU_TYPE ?= esp8266
-MCU_TYPE ?= esp32
+# Hardware to target
+#HARDWARE ?= HARDWARE_PROTO_ESP8266
+#HARDWARE ?= HARDWARE_PROTO_ESP32
+HARDWARE ?= HARDWARE_REV0
+
+ifeq ($(HARDWARE), HARDWARE_PROTO_ESP8266)
+	MCU_TYPE ?=	esp8266
+else ifeq ($(HARDWARE), HARDWARE_PROTO_ESP32)
+	MCU_TYPE ?= esp32
+else ifeq ($(HARDWARE), HARDWARE_REV0)
+	MCU_TYPE ?= esp32
+endif
 ifeq ($(MCU_TYPE), esp8266)
 	BOARD_TYPE ?= $(MCU_TYPE):$(MCU_TYPE):nodemcuv2
 	PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json"
@@ -51,7 +60,7 @@ config-tools:
 	$(foreach lib, $(GIT_LIBRARIES), $(ARDUINO_CLI) lib install --git-url $(lib);)
 
 fm-streamer:
-	$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE)$(BOARD_OPTIONS) $(PROJECT_BASE)/$(PROJECT) --build-property "build.extra_flags=\"-DFOOBARBAZ\""
+	$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE)$(BOARD_OPTIONS) --build-property "compiler.cpp.extra_flags=-D$(HARDWARE)" $(PROJECT_BASE)/$(PROJECT)
 
 program: all stop-serial
 	$(ARDUINO_CLI) upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE)$(BOARD_OPTIONS) --input-dir=$(BUILD_PATH)

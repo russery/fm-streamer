@@ -21,7 +21,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #if defined(ESP32)
 #include <esp_spiffs.h>
 #include <sys/stat.h>
-#endif // ESP32
+#elif defined(ESP8266)
+#include <FS.h>
+#endif // ESP32 / ESP8266
 
 namespace {
 #if defined(ESP32)
@@ -68,7 +70,8 @@ void Config::Start(void) {
   if (!SPIFFS.exists(FILE_NAME)) {
     WriteToFlash(); // Write in defaults
   }
-  File configfile = SPIFFS.open(FILE_NAME, "r");
+  File filehandle = SPIFFS.open(FILE_NAME, "r");
+  File *configfile = &filehandle;
 #endif
   station_ = ReadConfigVal_(configfile).toInt();
   freq_ = ReadConfigVal_(configfile).toInt();
@@ -78,7 +81,7 @@ void Config::Start(void) {
 #if defined(ESP32)
   fclose(configfile);
 #elif defined(ESP8266)
-  configfile.close();
+  configfile->close();
 #endif // ESP32 / ESP8266
 }
 

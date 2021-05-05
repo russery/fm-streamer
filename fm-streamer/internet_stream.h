@@ -21,7 +21,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef __INTERNET_STREAM_H
 #define __INTERNET_STREAM_H
 
-#include <Arduino.h>
 #include <AudioFileSourceBuffer.h>
 #include <AudioFileSourceHTTPStream.h>
 #include <AudioGeneratorMP3.h>
