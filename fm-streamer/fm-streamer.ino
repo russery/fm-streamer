@@ -48,8 +48,8 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  pinMode(LED_STREAMING_PIN, OUTPUT);
-  digitalWrite(LED_STREAMING_PIN, LED_OFF);
+  pinMode(BSP::LED_STREAMING_PIN, OUTPUT);
+  digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_OFF);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   cfg.Start();
@@ -102,7 +102,7 @@ void loop() {
     fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
-    digitalWrite(LED_STREAMING_PIN, LED_OFF);
+    digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_OFF);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
     break;
@@ -122,7 +122,7 @@ void loop() {
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
-    digitalWrite(LED_STREAMING_PIN, LED_ON);
+    digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_ON);
     if (!stream.Loop()) {
       stream.Flush();
       state = ST_STREAM_START;

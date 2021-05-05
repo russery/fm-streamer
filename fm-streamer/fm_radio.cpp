@@ -21,10 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <assert.h>
 
 void FmRadio::Start(const char *station_id) {
-#if defined(ESP32)
-  // ESP32 I2S default pinout interferes with I2C, so we have to change it:
-  i2s_output.SetPinout(I2S_BCLK_PIN, I2S_WCLK_PIN, I2S_DATA_PIN);
-#endif
+  i2s_output.SetPinout(BSP::I2S_BCLK_PIN, BSP::I2S_WCLK_PIN, BSP::I2S_DATA_PIN);
   radio_.Start();
   radio_.BeginRDS();
   radio_.SetRDSstation((char *)station_id);

@@ -1,6 +1,6 @@
 /*
-Silicon Devices Si4713 FM Transmitter Driver Library. Based on the
-Adafruit Si4713 library (https://github.com/adafruit/Adafruit-Si4713-Library/),
+Silicon Devices Si47xx FM Transmitter Driver Library. Based on the
+Adafruit Si47xx library (https://github.com/adafruit/Adafruit-Si47xx-Library/),
 but significantly simplified and cleaned up, and with support for some
 additional command modes.
 
@@ -25,7 +25,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 
-constexpr uint SI4710_ADDR PROGMEM = 0x63;
 constexpr uint SI4710_STATUS_CTS PROGMEM = 0x80;
 
 constexpr uint CMD_POWER_UP PROGMEM = 0x01;
@@ -80,13 +79,13 @@ constexpr uint PROP_TX_RDS_PS_AF PROGMEM = 0x2C06;
 constexpr uint PROP_TX_RDS_FIFO_SIZE PROGMEM = 0x2C07;
 
 void RequestBytes_(uint num_bytes) {
-  Wire.requestFrom((uint8_t)SI4710_ADDR, (uint8_t)num_bytes);
+  Wire.requestFrom((uint8_t)BSP::SI47xx_I2C_ADDR, (uint8_t)num_bytes);
   while (Wire.available() < num_bytes)
     yield();
 }
 
-void Si4713::SendCommand_(uint len) {
-  Wire.beginTransmission((uint8_t)SI4710_ADDR);
+void Si47xx::SendCommand_(uint len) {
+  Wire.beginTransmission((uint8_t)BSP::SI47xx_I2C_ADDR);
   for (uint8_t i = 0; i < len; i++) {
     Wire.write(cmd_buff_[i]);
   }
@@ -99,7 +98,7 @@ void Si4713::SendCommand_(uint len) {
   }
 }
 
-void Si4713::SetProperty_(uint property, uint value) {
+void Si47xx::SetProperty_(uint property, uint value) {
   cmd_buff_[0] = CMD_SET_PROPERTY;
   cmd_buff_[1] = 0;
   cmd_buff_[2] = property >> 8;
@@ -109,12 +108,15 @@ void Si4713::SetProperty_(uint property, uint value) {
   SendCommand_(6);
 }
 
-bool Si4713::Start(bool use_i2s_input) {
+bool Si47xx::Start(bool use_i2s_input) {
   Wire.begin();
-  pinMode(reset_pin_, OUTPUT);
-  digitalWrite(reset_pin_, LOW);
+
+  BSP::StartSi47xxClock(32768);
+
+  pinMode(BSP::RADIO_RESET_PIN, OUTPUT);
+  digitalWrite(BSP::RADIO_RESET_PIN, LOW);
   delay(1);
-  digitalWrite(reset_pin_, HIGH);
+  digitalWrite(BSP::RADIO_RESET_PIN, HIGH);
   delay(1);
 
   cmd_buff_[0] = CMD_POWER_UP;
@@ -133,24 +135,24 @@ bool Si4713::Start(bool use_i2s_input) {
   SetProperty_(PROP_TX_ACOMP_ENABLE,
                0x0003); // Turn on limiter and Audio Dynamic Range Control
 
-  // Check for Si4713:
+  // Check for Si47xx:
   cmd_buff_[0] = CMD_GET_REV;
   cmd_buff_[1] = 0;
   SendCommand_(2);
   RequestBytes_(2);
   Wire.read();
-  return (Wire.read() == 13); // Good read from chip if we get Si47"13"
+  return (Wire.read() == BSP::SI47XX_CHIP_VERSION); // Good read from chip if we get correct chip version
 }
 
-void Si4713::EnableI2SInput(uint sample_rate_hz) {
+void Si47xx::EnableI2SInput(uint sample_rate_hz) {
   SetProperty_(PROP_DIGITAL_INPUT_SAMPLE_RATE, sample_rate_hz);
 }
 
-void Si4713::DisableI2SInput(void) {
+void Si47xx::DisableI2SInput(void) {
   SetProperty_(PROP_DIGITAL_INPUT_SAMPLE_RATE, 0);
 }
 
-void Si4713::TuneFM(uint freq_kHz) {
+void Si47xx::TuneFM(uint freq_kHz) {
   freq_kHz /= 10; // Convert to 10kHz
   // Force freq to be a multiple of 50kHz:
   if (freq_kHz % 5 != 0)
@@ -167,7 +169,7 @@ void Si4713::TuneFM(uint freq_kHz) {
     yield();
 }
 
-void Si4713::SetTXpower(uint pwr, uint antcap) {
+void Si47xx::SetTXpower(uint pwr, uint antcap) {
   cmd_buff_[0] = CMD_TX_TUNE_POWER;
   cmd_buff_[1] = 0;
   cmd_buff_[2] = 0;
@@ -180,7 +182,7 @@ void Si4713::SetTXpower(uint pwr, uint antcap) {
     yield();
 }
 
-void Si4713::ReadASQStatus(void) {
+void Si47xx::ReadASQStatus(void) {
   cmd_buff_[0] = CMD_TX_ASQ_STATUS;
   cmd_buff_[1] = 0x1;
   SendCommand_(2);
@@ -193,7 +195,7 @@ void Si4713::ReadASQStatus(void) {
   CurrInLevel = (int8_t)Wire.read();
 }
 
-void Si4713::ReadTuneStatus(void) {
+void Si47xx::ReadTuneStatus(void) {
   cmd_buff_[0] = CMD_TX_TUNE_STATUS;
   cmd_buff_[1] = 0x1;
   SendCommand_(2);
@@ -211,7 +213,7 @@ void Si4713::ReadTuneStatus(void) {
   CurrNoiseLevel = Wire.read();
 }
 
-void Si4713::ReadTuneMeasure(uint freq_kHz) {
+void Si47xx::ReadTuneMeasure(uint freq_kHz) {
   freq_kHz /= 10; // Convert to 10kHz
   // Force freq to be a multiple of 50kHz:
   if (freq_kHz % 5 != 0)
@@ -228,7 +230,7 @@ void Si4713::ReadTuneMeasure(uint freq_kHz) {
     yield();
 }
 
-void Si4713::BeginRDS(uint programID) {
+void Si47xx::BeginRDS(uint programID) {
   SetProperty_(PROP_TX_AUDIO_DEVIATION, 6625); // 66.25KHz (default is 68.25)
   SetProperty_(PROP_TX_RDS_DEVIATION, 200);    // 2KHz (default)
   SetProperty_(PROP_TX_RDS_INTERRUPT_SOURCE, 0x0001); // RDS IRQ
@@ -242,7 +244,7 @@ void Si4713::BeginRDS(uint programID) {
   SetProperty_(PROP_TX_COMPONENT_ENABLE, 0x0007); // Enable RDS
 }
 
-void Si4713::SetRDSstation(char *s) {
+void Si47xx::SetRDSstation(char *s) {
   uint slots = (strlen(s) + 3) / 4;
 
   for (uint i = 0; i < slots; i++) {
@@ -256,7 +258,7 @@ void Si4713::SetRDSstation(char *s) {
   }
 }
 
-void Si4713::SetRDSbuffer(char *s) {
+void Si47xx::SetRDSbuffer(char *s) {
   uint slots = (strlen(s) + 3) / 4;
 
   for (uint i = 0; i < slots; i++) {
@@ -277,8 +279,8 @@ void Si4713::SetRDSbuffer(char *s) {
   // SetProperty_(PROP_TX_COMPONENT_ENABLE, 0x0007); // stereo, pilot+rds
 }
 
-uint Si4713::GetStatus_(void) {
-  Wire.beginTransmission((uint8_t)SI4710_ADDR);
+uint Si47xx::GetStatus_(void) {
+  Wire.beginTransmission((uint8_t)BSP::SI47xx_I2C_ADDR);
   Wire.write(CMD_GET_INT_STATUS);
   Wire.endTransmission();
   RequestBytes_(1);

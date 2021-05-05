@@ -25,9 +25,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "bsp.h"
 
-class Si4713 {
+class Si47xx {
 public:
-  explicit Si4713(uint reset_pin) : reset_pin_(reset_pin){};
   bool Start(bool use_i2s_input = false);
   void EnableI2SInput(uint sample_rate_hz =
                           44100); // Must be called after I2S stream is active.
@@ -54,7 +53,6 @@ public:
   void SetGPIOCtrl(uint x);
 
 private:
-  uint reset_pin_;
   uint cmd_buff_[10]; // holds the command buffer
 
   void SendCommand_(uint len);

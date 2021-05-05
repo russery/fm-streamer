@@ -29,7 +29,7 @@ public:
   AudioOutputI2S i2s_output;
 
   void Start(const char *station_id = "FM Streamer");
-  void SetInputEnable(bool enabled); // En-/Disable I2S stream input
+  void SetInputEnable(bool enabled); // En-/Dis-able I2S stream input
   void SetTxPower(uint percent);
   uint GetTxPower(void);
   void SetVolume(uint percent);
@@ -41,7 +41,7 @@ public:
   void SetRdsText(const char *text);
 
 private:
-  Si4713 radio_ = Si4713(RADIO_RESET_PIN);
+  Si47xx radio_ = Si47xx();
   uint freq_khz_ = 88100;
   uint txpower_percent_ = 88;
   uint vol_percent_ = 80;
