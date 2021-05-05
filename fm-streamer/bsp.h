@@ -23,25 +23,42 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <Arduino.h>
 
 #if defined(ESP32)
-// Radio interface pins:
-constexpr uint RADIO_RESET_PIN PROGMEM = 23;
-constexpr uint I2S_BCLK_PIN PROGMEM = 4;
-constexpr uint I2S_WCLK_PIN PROGMEM = 17;
-constexpr uint I2S_DATA_PIN PROGMEM = 16;
-
 // Status LED and states:
 constexpr char LED_STREAMING_PIN PROGMEM = 2;
 constexpr char LED_OFF PROGMEM = LOW;
 constexpr char LED_ON PROGMEM = HIGH;
 
 #elif defined(ESP8266)
-// Radio interface pins:
-constexpr uint RADIO_RESET_PIN PROGMEM = 12;
-
 // Status LED and states:
 constexpr char LED_STREAMING_PIN PROGMEM = 16;
 constexpr char LED_OFF PROGMEM = HIGH;
 constexpr char LED_ON PROGMEM = LOW;
 #endif // ESP32 / ESP8266
+
+
+#define HARDWARE_PROTO_ESP32
+
+#if defined(HARDWARE_PROTO_ESP8266)
+constexpr uint RADIO_RESET_PIN PROGMEM = 12;
+
+#elif defined(HARDWARE_PROTO_ESP32)
+constexpr uint RADIO_RESET_PIN PROGMEM = 23;
+constexpr uint I2S_BCLK_PIN PROGMEM = 4;
+constexpr uint I2S_WCLK_PIN PROGMEM = 17;
+constexpr uint I2S_DATA_PIN PROGMEM = 16;
+
+#elif defined(HARDWARE_REV0)
+constexpr uint RADIO_RESET_PIN PROGMEM = 23;
+constexpr uint I2S_BCLK_PIN PROGMEM = 4;
+constexpr uint I2S_WCLK_PIN PROGMEM = 17;
+constexpr uint I2S_DATA_PIN PROGMEM = 16;
+
+#endif // Hardware versions
+
+
+#ifdef FOOBARBAZ
+#pragma message FARTNUTS!
+#endif
+
 
 #endif // __BSP_H

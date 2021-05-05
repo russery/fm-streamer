@@ -21,7 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define __FM_RADIO_H
 
 #include "bsp.h"
-#include "si4713.h"
+#include "si47xx.h"
 #include <AudioOutputI2S.h>
 
 class FmRadio {
