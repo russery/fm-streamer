@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name SI4721)(type Legacy)(uri ${KIPRJMOD}/resources/SI4721/SI4721.lib)(options "")(descr ""))
+  (lib (name esp32_devkit_v1_doit)(type Legacy)(uri ${KIPRJMOD}/resources/kicad-master/symbols/esp32_devkit_v1_doit.lib)(options "")(descr ""))
+  (lib (name 2021-05-02_19-16-46)(type Legacy)(uri ${KIPRJMOD}/resources/ul_PCM1772PWR/KiCAD/2021-05-02_19-16-46/2021-05-02_19-16-46.lib)(options "")(descr ""))
+)
