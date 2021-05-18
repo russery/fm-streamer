@@ -22,7 +22,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 void FmRadio::Start(const char *station_id) {
   i2s_output.SetPinout(BSP::I2S_BCLK_PIN, BSP::I2S_WCLK_PIN, BSP::I2S_DATA_PIN);
-  radio_.Start();
+#if defined(HARDWARE_REV0)
+  radio_.Start(true); // Start with I2S input
+#else
+  radio_.Start(false); // Start with analog input
+#endif
   radio_.BeginRDS();
   radio_.SetRDSstation((char *)station_id);
 }
@@ -64,7 +68,7 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
   static float integral_error = 0;
   static float previous_error = 0;
   const uint AVG_INPUT_CYCLES = 10;
-  const float K_P = 0.5f;
+  const float K_P = 0.3f;
   const float K_I = 0.1f;
   const float K_D = 0.0f;
   const float INT_SAT_VAL = 10.0f;

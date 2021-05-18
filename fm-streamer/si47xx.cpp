@@ -109,7 +109,7 @@ void Si47xx::SetProperty_(uint property, uint value) {
 }
 
 bool Si47xx::Start(bool use_i2s_input) {
-  Wire.begin();
+  Wire.begin(BSP::I2C_SDA_PIN, BSP::I2C_SCL_PIN);
 
   BSP::StartSi47xxClock(32768);
 
@@ -141,7 +141,8 @@ bool Si47xx::Start(bool use_i2s_input) {
   SendCommand_(2);
   RequestBytes_(2);
   Wire.read();
-  return (Wire.read() == BSP::SI47XX_CHIP_VERSION); // Good read from chip if we get correct chip version
+  return (Wire.read() == BSP::SI47XX_CHIP_VERSION); // Good read from chip if we
+                                                    // get correct chip version
 }
 
 void Si47xx::EnableI2SInput(uint sample_rate_hz) {

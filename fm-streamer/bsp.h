@@ -40,12 +40,14 @@ public:
 #if defined(HARDWARE_PROTO_ESP8266)
   static constexpr uint RADIO_RESET_PIN PROGMEM = 12;
   static constexpr uint SI47XX_CHIP_VERSION = 13; // SI4713
-    static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x63;
-
+  static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x63;
 
   static constexpr uint I2S_BCLK_PIN PROGMEM = 15;
   static constexpr uint I2S_WCLK_PIN PROGMEM = 2;
   static constexpr uint I2S_DATA_PIN PROGMEM = 3;
+
+  static constexpr uint I2C_SDA_PIN PROGMEM = 4;
+  static constexpr uint I2C_SCL_PIN PROGMEM = 5;
 
 #elif defined(HARDWARE_PROTO_ESP32)
   static constexpr uint RADIO_RESET_PIN PROGMEM = 23;
@@ -56,12 +58,14 @@ public:
   static constexpr uint I2S_WCLK_PIN PROGMEM = 17;
   static constexpr uint I2S_DATA_PIN PROGMEM = 16;
 
+  static constexpr uint I2C_SDA_PIN PROGMEM = 21;
+  static constexpr uint I2C_SCL_PIN PROGMEM = 22;
+
 #elif defined(HARDWARE_REV0)
   static constexpr uint RADIO_RESET_PIN PROGMEM = 13;
   static constexpr uint RADIO_CLK_PIN PROGMEM = 25;
   static constexpr uint SI47XX_CHIP_VERSION = 21; // SI4721
-    static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x11;
-
+  static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x11;
 
   static constexpr uint I2S_BCLK_PIN PROGMEM = 16;
   static constexpr uint I2S_WCLK_PIN PROGMEM = 17;
