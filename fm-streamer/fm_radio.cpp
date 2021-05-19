@@ -33,7 +33,7 @@ void FmRadio::Start(const char *station_id) {
 
 void FmRadio::SetInputEnable(bool enabled) {
   if (enabled)
-    radio_.EnableI2SInput();
+    radio_.EnableI2SInput(44100);
   else
     radio_.DisableI2SInput();
 }
@@ -94,10 +94,10 @@ void FmRadio::DoAutoSetVolume(int target_volume) {
       GetVolume();
 
   SetVolume(newvolume);
-  Serial.printf(
-      "\r\nAvg Input: %3.2f flags: %x vol: %d error: %f inlvl: %d int: %f",
-      avg_input, radio_.CurrASQ, GetVolume(), error, radio_.CurrInLevel,
-      integral_error);
+  // Serial.printf(
+  //     "\r\nAvg Input: %3.2f flags: %x vol: %d error: %f inlvl: %d int: %f",
+  //     avg_input, radio_.CurrASQ, GetVolume(), error, radio_.CurrInLevel,
+  //     integral_error);
 }
 
 int FmRadio::GetInputLevel(void) {

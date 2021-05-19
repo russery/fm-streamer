@@ -21,7 +21,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 void BSP::StartSi47xxClock(uint freq_hz) {
 #ifdef HARDWARE_REV0
-  ledcSetup(0, freq_hz, 1);
+  ledcSetup(0, freq_hz, 8);
   ledcAttachPin(RADIO_CLK_PIN, 0);
+  ledcWrite(0, 127);
 #endif // HARDWARE_REV0
 }

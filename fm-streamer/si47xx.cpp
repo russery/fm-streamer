@@ -110,19 +110,18 @@ void Si47xx::SetProperty_(uint property, uint value) {
 
 bool Si47xx::Start(bool use_i2s_input) {
   Wire.begin(BSP::I2C_SDA_PIN, BSP::I2C_SCL_PIN);
-
   BSP::StartSi47xxClock(32768);
-
+  delay(10);
   pinMode(BSP::RADIO_RESET_PIN, OUTPUT);
   digitalWrite(BSP::RADIO_RESET_PIN, LOW);
-  delay(1);
+  delay(10);
   digitalWrite(BSP::RADIO_RESET_PIN, HIGH);
-  delay(1);
-
+  delay(10);
   cmd_buff_[0] = CMD_POWER_UP;
   // CTS interrupt disabled, GPO2 output disabled, boot normally, enable
   // oscillator, transmit:
-  cmd_buff_[1] = 0x12;
+  //cmd_buff_[1] = 0x12; // TODO: make this dependent on hardware version
+  cmd_buff_[1] = 0x02; // External xtal disabled
   if (use_i2s_input)
     cmd_buff_[2] = 0x0F; // Digital input mode
   else

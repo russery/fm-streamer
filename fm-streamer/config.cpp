@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "config.h"
 #if defined(ESP32)
 #include <esp_spiffs.h>
+#include <esp_task_wdt.h>
 #include <sys/stat.h>
 #elif defined(ESP8266)
 #include <FS.h>
@@ -59,7 +60,11 @@ void Config::Start(void) {
                                 .partition_label = NULL,
                                 .max_files = 5,
                                 .format_if_mount_failed = true};
+  // Change the task watchdog timer to 60s to allow plenty of time for SPIFFS
+  // flash file system initialization if necessary
+  esp_task_wdt_init(60, true);
   esp_vfs_spiffs_register(&conf);
+  esp_task_wdt_init(10, true); // Change watchdog back to something reasonable
   struct stat st;
   if (stat(FILE_NAME, &st) != 0) {
     WriteToFlash(); // Write in defaults
