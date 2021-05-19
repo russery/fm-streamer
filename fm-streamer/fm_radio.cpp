@@ -31,7 +31,7 @@ void FmRadio::Start(const char *station_id) {
   radio_.SetRDSstation((char *)station_id);
 }
 
-void FmRadio::SetInputEnable(bool enabled) {
+void FmRadio::SetI2SInputEnable(bool enabled) {
   if (enabled)
     radio_.EnableI2SInput(44100);
   else

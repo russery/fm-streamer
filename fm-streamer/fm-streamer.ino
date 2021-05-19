@@ -98,7 +98,7 @@ void loop() {
     }
     break;
   case ST_STREAM_START:
-    fm_radio.SetInputEnable(false); // Disable I2S input
+    fm_radio.SetI2SInputEnable(false); // Disable I2S input
     fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
@@ -110,7 +110,7 @@ void loop() {
     if (stream.Loop()) {
       state = ST_STREAMING;
       fm_radio.SetTxPower(cfg.GetPower()); // Allow radio to turn back on
-      fm_radio.SetInputEnable(true);       // Enable I2S input
+      fm_radio.SetI2SInputEnable(true);    // Enable I2S input
     } else if (millis() - stream_start_time_ms > 30000) {
       resetFunc(); // Timed out trying to connect, try resetting
     }

@@ -23,6 +23,6 @@ void BSP::StartSi47xxClock(uint freq_hz) {
 #ifdef HARDWARE_REV0
   ledcSetup(0, freq_hz, 8);
   ledcAttachPin(RADIO_CLK_PIN, 0);
-  ledcWrite(0, 127);
-#endif // HARDWARE_REV0
+  ledcWrite(0, 127); // 50% duty cycle on 8-bit timer
+#endif               // HARDWARE_REV0
 }

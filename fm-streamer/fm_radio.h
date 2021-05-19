@@ -29,7 +29,7 @@ public:
   AudioOutputI2S i2s_output;
 
   void Start(const char *station_id = "FM Streamer");
-  void SetInputEnable(bool enabled); // En-/Dis-able I2S stream input
+  void SetI2SInputEnable(bool enabled);
   void SetTxPower(uint percent);
   uint GetTxPower(void);
   void SetVolume(uint percent);

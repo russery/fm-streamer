@@ -12,8 +12,9 @@ Normal clock (rising edge)
 
 
 TODO:
-- make xtal enable based on hardware version
 - fix hardware errata
 - update top level readme with board images and latest hardware config
+- glow LED
+- See about reducing interaction with SI47xxx to reduce glitching
 
 

@@ -117,31 +117,34 @@ bool Si47xx::Start(bool use_i2s_input) {
   delay(10);
   digitalWrite(BSP::RADIO_RESET_PIN, HIGH);
   delay(10);
-  cmd_buff_[0] = CMD_POWER_UP;
-  // CTS interrupt disabled, GPO2 output disabled, boot normally, enable
-  // oscillator, transmit:
-  //cmd_buff_[1] = 0x12; // TODO: make this dependent on hardware version
-  cmd_buff_[1] = 0x02; // External xtal disabled
-  if (use_i2s_input)
-    cmd_buff_[2] = 0x0F; // Digital input mode
-  else
-    cmd_buff_[2] = 0x50; // Analog input mode
-  SendCommand_(3);
 
-  if (use_i2s_input)
-    SetProperty_(PROP_DIGITAL_INPUT_FORMAT, 0x0008); // I2S Format.
-  SetProperty_(PROP_TX_PREEMPHASIS, 0);              // 75µS pre-emph (USA std)
-  SetProperty_(PROP_TX_ACOMP_ENABLE,
-               0x0003); // Turn on limiter and Audio Dynamic Range Control
-
-  // Check for Si47xx:
+  // Check communications with Si47xx:
   cmd_buff_[0] = CMD_GET_REV;
   cmd_buff_[1] = 0;
   SendCommand_(2);
   RequestBytes_(2);
   Wire.read();
-  return (Wire.read() == BSP::SI47XX_CHIP_VERSION); // Good read from chip if we
-                                                    // get correct chip version
+  if (Wire.read() != BSP::SI47XX_CHIP_VERSION)
+    return false; // Wrong chip version detected, bail out
+
+  cmd_buff_[0] = CMD_POWER_UP;
+  // CTS interrupt disabled, GPO2 output disabled, boot normally, transmit mode:
+  if (use_i2s_input) {
+    cmd_buff_[1] = 0x02; // Crystal osc disabled
+    cmd_buff_[2] = 0x0F; // Digital input mode
+  } else {
+    cmd_buff_[1] = 0x12; // Crystal osc enabled
+    cmd_buff_[2] = 0x50; // Analog input mode
+  }
+  SendCommand_(3);
+
+  if (use_i2s_input) {
+    SetProperty_(PROP_DIGITAL_INPUT_FORMAT, 0x0008); // I2S Format.
+  }
+  SetProperty_(PROP_TX_PREEMPHASIS, 0); // 75µS pre-emph (USA std)
+  SetProperty_(PROP_TX_ACOMP_ENABLE,
+               0x0003); // Turn on limiter and Audio Dynamic Range Control
+  return true;
 }
 
 void Si47xx::EnableI2SInput(uint sample_rate_hz) {
