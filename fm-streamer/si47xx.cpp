@@ -118,15 +118,6 @@ bool Si47xx::Start(bool use_i2s_input) {
   digitalWrite(BSP::RADIO_RESET_PIN, HIGH);
   delay(10);
 
-  // Check communications with Si47xx:
-  cmd_buff_[0] = CMD_GET_REV;
-  cmd_buff_[1] = 0;
-  SendCommand_(2);
-  RequestBytes_(2);
-  Wire.read();
-  if (Wire.read() != BSP::SI47XX_CHIP_VERSION)
-    return false; // Wrong chip version detected, bail out
-
   cmd_buff_[0] = CMD_POWER_UP;
   // CTS interrupt disabled, GPO2 output disabled, boot normally, transmit mode:
   if (use_i2s_input) {
@@ -138,8 +129,22 @@ bool Si47xx::Start(bool use_i2s_input) {
   }
   SendCommand_(3);
 
+  // Check communications with Si47xx:
+  cmd_buff_[0] = CMD_GET_REV;
+  cmd_buff_[1] = 0;
+  SendCommand_(2);
+  RequestBytes_(2);
+  Wire.read();
+  uint8_t ver = Wire.read();
+  if (ver != BSP::SI47XX_CHIP_VERSION) {
+    Serial.println("ERROR: DETECTED WRONG CHIP VERSION:");
+    Serial.printf("%d", ver);
+    return false; // Wrong chip version detected, bail out
+  }
+
   if (use_i2s_input) {
-    SetProperty_(PROP_DIGITAL_INPUT_FORMAT, 0x0008); // I2S Format.
+    SetProperty_(PROP_DIGITAL_INPUT_FORMAT,
+                 0x000B); // I2S Format, stereo, 8-bit
   }
   SetProperty_(PROP_TX_PREEMPHASIS, 0); // 75µS pre-emph (USA std)
   SetProperty_(PROP_TX_ACOMP_ENABLE,
@@ -239,7 +244,7 @@ void Si47xx::BeginRDS(uint programID) {
   SetProperty_(PROP_TX_RDS_INTERRUPT_SOURCE, 0x0001); // RDS IRQ
   SetProperty_(PROP_TX_RDS_PI, programID);
   SetProperty_(PROP_TX_RDS_PS_MIX, 0x03);       // 50% mix (default)
-  SetProperty_(PROP_TX_RDS_PS_MISC, 0x1808);    // RDSD0 & RDSMS (default)
+  SetProperty_(PROP_TX_RDS_PS_MISC, 0x1AC8);    // RDSD0 & RDSMS (default)
   SetProperty_(PROP_TX_RDS_PS_REPEAT_COUNT, 3); // 3 repeats (default)
   SetProperty_(PROP_TX_RDS_MESSAGE_COUNT, 1);
   SetProperty_(PROP_TX_RDS_PS_AF, 0xE0E0); // no AF

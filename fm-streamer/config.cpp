@@ -64,7 +64,7 @@ void Config::Start(void) {
   // flash file system initialization if necessary
   esp_task_wdt_init(60, true);
   esp_vfs_spiffs_register(&conf);
-  esp_task_wdt_init(10, true); // Change watchdog back to something reasonable
+  esp_task_wdt_init(1, true); // Change watchdog back to something reasonable
   struct stat st;
   if (stat(FILE_NAME, &st) != 0) {
     WriteToFlash(); // Write in defaults

@@ -33,7 +33,8 @@ void FmRadio::Start(const char *station_id) {
 
 void FmRadio::SetI2SInputEnable(bool enabled) {
   if (enabled)
-    radio_.EnableI2SInput(44100);
+    radio_.EnableI2SInput(44100); // Hardcoded to 44.1kHz - maybe make this tied
+                                  // to actual stream bitrate somehow?
   else
     radio_.DisableI2SInput();
 }

@@ -46,8 +46,7 @@ private:
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
       {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"},
-      {.URL = "http://live-mp3-128.kexp.org/",
-       .Name = "KEXP Seattle"}};
+      {.URL = "http://live-mp3-128.kexp.org/", .Name = "KEXP Seattle"}};
   Config *cfg_;
   AsyncWebServer server_;
   bool config_changed_ = true;

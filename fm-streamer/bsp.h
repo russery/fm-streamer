@@ -84,6 +84,15 @@ public:
 #endif // Hardware versions
 
   static void StartSi47xxClock(uint freq_hz);
+  static void InitLED(void);
+  static void SetLED(bool state);
+  static void Loop(void);
+
+private:
+  static constexpr uint LED_MAX_BRIGHTNESS PROGMEM = 100;
+  static constexpr uint LED_MIN_BRIGHTNESS PROGMEM = 10;
+  static bool LED_increasing_brightness_;
+  static bool LED_on_;
 };
 
 #endif // __BSP_H

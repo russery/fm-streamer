@@ -48,8 +48,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  pinMode(BSP::LED_STREAMING_PIN, OUTPUT);
-  digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_OFF);
+  BSP::InitLED();
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   cfg.Start();
@@ -99,18 +98,16 @@ void loop() {
     break;
   case ST_STREAM_START:
     fm_radio.SetI2SInputEnable(false); // Disable I2S input
-    fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
-    digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_OFF);
+    BSP::SetLED(false);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
-      fm_radio.SetTxPower(cfg.GetPower()); // Allow radio to turn back on
-      fm_radio.SetI2SInputEnable(true);    // Enable I2S input
+      fm_radio.SetI2SInputEnable(true); // Enable I2S input
     } else if (millis() - stream_start_time_ms > 30000) {
       resetFunc(); // Timed out trying to connect, try resetting
     }
@@ -122,7 +119,7 @@ void loop() {
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
-    digitalWrite(BSP::LED_STREAMING_PIN, BSP::LED_ON);
+    BSP::SetLED(true);
     if (!stream.Loop()) {
       stream.Flush();
       state = ST_STREAM_START;
@@ -174,8 +171,8 @@ void loop() {
     static uint previous_station = cfg.GetStation();
     uint curr_station = cfg.GetStation();
     if (curr_station != previous_station) {
-      previous_station = curr_station; // User changed station
-      fm_radio.SetTxPower(0); // Mute radio output while stream is starting up
+      previous_station = curr_station;   // User changed station
+      fm_radio.SetI2SInputEnable(false); // disable I2S input
       stream.Flush();
       state = ST_STREAM_START;
     }
@@ -187,6 +184,7 @@ void loop() {
   }
 
   ArduinoOTA.handle();
+  BSP::Loop();
 
   yield(); // Make sure WiFi can do its thing.
 }
