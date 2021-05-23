@@ -14,4 +14,3 @@ Normal clock (rising edge)
 TODO:
 - fix hardware errata
 - update top level readme with board images and latest hardware config
-- glow LED

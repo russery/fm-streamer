@@ -19,7 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "bsp.h"
 
-bool BSP::LED_increasing_brightness_ = true;
 bool BSP::LED_on_ = false;
 
 void BSP::StartSi47xxClock(uint freq_hz) {
@@ -58,21 +57,23 @@ void BSP::SetLED(bool state) {
 void BSP::Loop(void) {
 #if defined(ESP32)
   static unsigned long last_led_ms = 0;
-  if (millis() - last_led_ms > 10 && LED_on_) {
+  static bool increasing_brightness = true;
+  static uint8_t brightness = 0;
+
+  if ((millis() - last_led_ms > 20) && LED_on_) {
     last_led_ms = millis();
-    int new_brightness = ledcRead(1);
-    if (LED_increasing_brightness_) {
-      if (++new_brightness > LED_MAX_BRIGHTNESS) {
-        LED_increasing_brightness_ = false;
-        new_brightness--;
+    if (increasing_brightness) {
+      if (++brightness > LED_MAX_BRIGHTNESS) {
+        increasing_brightness = false;
+        brightness--;
       }
     } else {
-      if (--new_brightness < LED_MIN_BRIGHTNESS) {
-        LED_increasing_brightness_ = true;
-        new_brightness++;
+      if (--brightness <= LED_MIN_BRIGHTNESS) {
+        increasing_brightness = true;
+        brightness++;
       }
     }
-    ledcWrite(1, new_brightness);
+    ledcWrite(1, brightness);
   }
 #endif
 }

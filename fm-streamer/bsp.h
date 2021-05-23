@@ -22,6 +22,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 
+#define HARDWARE_REV0
+
 class BSP {
 public:
 #if defined(ESP32)
@@ -89,9 +91,8 @@ public:
   static void Loop(void);
 
 private:
-  static constexpr uint LED_MAX_BRIGHTNESS PROGMEM = 100;
-  static constexpr uint LED_MIN_BRIGHTNESS PROGMEM = 10;
-  static bool LED_increasing_brightness_;
+  static constexpr uint32_t LED_MAX_BRIGHTNESS PROGMEM = 100;
+  static constexpr uint32_t LED_MIN_BRIGHTNESS PROGMEM = 5;
   static bool LED_on_;
 };
 
