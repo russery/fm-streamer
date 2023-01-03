@@ -20,8 +20,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "config.h"
 #if defined(ESP32)
 #include <esp_spiffs.h>
+#include <esp_task_wdt.h>
 #include <sys/stat.h>
-#endif // ESP32
+#elif defined(ESP8266)
+#include <FS.h>
+#endif // ESP32 / ESP8266
 
 namespace {
 #if defined(ESP32)
@@ -57,7 +60,11 @@ void Config::Start(void) {
                                 .partition_label = NULL,
                                 .max_files = 5,
                                 .format_if_mount_failed = true};
+  // Change the task watchdog timer to 60s to allow plenty of time for SPIFFS
+  // flash file system initialization if necessary
+  esp_task_wdt_init(60, true);
   esp_vfs_spiffs_register(&conf);
+  esp_task_wdt_init(1, true); // Change watchdog back to something reasonable
   struct stat st;
   if (stat(FILE_NAME, &st) != 0) {
     WriteToFlash(); // Write in defaults
@@ -68,7 +75,8 @@ void Config::Start(void) {
   if (!SPIFFS.exists(FILE_NAME)) {
     WriteToFlash(); // Write in defaults
   }
-  File configfile = SPIFFS.open(FILE_NAME, "r");
+  File filehandle = SPIFFS.open(FILE_NAME, "r");
+  File *configfile = &filehandle;
 #endif
   station_ = ReadConfigVal_(configfile).toInt();
   freq_ = ReadConfigVal_(configfile).toInt();
@@ -78,7 +86,7 @@ void Config::Start(void) {
 #if defined(ESP32)
   fclose(configfile);
 #elif defined(ESP8266)
-  configfile.close();
+  configfile->close();
 #endif // ESP32 / ESP8266
 }
 

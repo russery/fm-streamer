@@ -1,10 +1,19 @@
 # Board serial port for upload
 SERIAL_PORT ?= /dev/cu.usbserial-0001
-BAUDRATE = 115200
+BAUDRATE ?= 115200
 
-# Arduino CLI Fully Qualified Board Name (FQBN)
-#MCU_TYPE ?= esp8266
-MCU_TYPE ?= esp32
+# Hardware to target
+#HARDWARE ?= HARDWARE_PROTO_ESP8266
+#HARDWARE ?= HARDWARE_PROTO_ESP32
+HARDWARE ?= HARDWARE_REV0
+
+ifeq ($(HARDWARE), HARDWARE_PROTO_ESP8266)
+	MCU_TYPE ?=	esp8266
+else ifeq ($(HARDWARE), HARDWARE_PROTO_ESP32)
+	MCU_TYPE ?= esp32
+else ifeq ($(HARDWARE), HARDWARE_REV0)
+	MCU_TYPE ?= esp32
+endif
 ifeq ($(MCU_TYPE), esp8266)
 	BOARD_TYPE ?= $(MCU_TYPE):$(MCU_TYPE):nodemcuv2
 	PACKAGE_URLS ?= "https://arduino.esp8266.com/stable/package_esp8266com_index.json"
@@ -16,7 +25,7 @@ else ifeq ($(MCU_TYPE), esp32)
 	GIT_LIBRARIES ?= https://github.com/me-no-dev/ESPAsyncWebServer.git https://github.com/me-no-dev/AsyncTCP.git
 	BOARD_OPTIONS ?=
 endif
-LIBRARIES ?= ESP8266Audio@1.9.0 "Adafruit Si4713 Library" # Add extra libraries in a space-separated list
+LIBRARIES ?= ESP8266Audio # Add extra libraries in a space-separated list
 
 PROJECT_BASE = fm-streamer
 PROJECT ?= fm-streamer
@@ -51,7 +60,7 @@ config-tools:
 	$(foreach lib, $(GIT_LIBRARIES), $(ARDUINO_CLI) lib install --git-url $(lib);)
 
 fm-streamer:
-	$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE)$(BOARD_OPTIONS) $(PROJECT_BASE)/$(PROJECT)
+	$(ARDUINO_CLI) compile $(VERBOSE) --build-path=$(BUILD_PATH) --build-cache-path=$(BUILD_PATH) -b $(BOARD_TYPE)$(BOARD_OPTIONS) --build-property "compiler.cpp.extra_flags=-D$(HARDWARE)" $(PROJECT_BASE)/$(PROJECT)
 
 program: all stop-serial
 	$(ARDUINO_CLI) upload $(VERBOSE) -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE)$(BOARD_OPTIONS) --input-dir=$(BUILD_PATH)

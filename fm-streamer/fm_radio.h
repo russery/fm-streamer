@@ -21,7 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define __FM_RADIO_H
 
 #include "bsp.h"
-#include <Adafruit_Si4713.h>
+#include "si47xx.h"
 #include <AudioOutputI2S.h>
 
 class FmRadio {
@@ -29,6 +29,7 @@ public:
   AudioOutputI2S i2s_output;
 
   void Start(const char *station_id = "FM Streamer");
+  void SetI2SInputEnable(bool enabled);
   void SetTxPower(uint percent);
   uint GetTxPower(void);
   void SetVolume(uint percent);
@@ -40,7 +41,7 @@ public:
   void SetRdsText(const char *text);
 
 private:
-  Adafruit_Si4713 radio_ = Adafruit_Si4713(RADIO_RESET_PIN);
+  Si47xx radio_ = Si47xx();
   uint freq_khz_ = 88100;
   uint txpower_percent_ = 88;
   uint vol_percent_ = 80;

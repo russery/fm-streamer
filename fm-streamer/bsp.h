@@ -22,26 +22,78 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 
-#if defined(ESP32)
-// Radio interface pins:
-constexpr uint RADIO_RESET_PIN PROGMEM = 23;
-constexpr uint I2S_BCLK_PIN PROGMEM = 4;
-constexpr uint I2S_WCLK_PIN PROGMEM = 17;
-constexpr uint I2S_DATA_PIN PROGMEM = 16;
+#define HARDWARE_REV0
 
-// Status LED and states:
-constexpr char LED_STREAMING_PIN PROGMEM = 2;
-constexpr char LED_OFF PROGMEM = LOW;
-constexpr char LED_ON PROGMEM = HIGH;
+class BSP {
+public:
+#if defined(ESP32)
+  // Status LED and states:
+  static constexpr char LED_STREAMING_PIN PROGMEM = 2;
+  static constexpr char LED_OFF PROGMEM = LOW;
+  static constexpr char LED_ON PROGMEM = HIGH;
 
 #elif defined(ESP8266)
-// Radio interface pins:
-constexpr uint RADIO_RESET_PIN PROGMEM = 12;
-
-// Status LED and states:
-constexpr char LED_STREAMING_PIN PROGMEM = 16;
-constexpr char LED_OFF PROGMEM = HIGH;
-constexpr char LED_ON PROGMEM = LOW;
+  // Status LED and states:
+  static constexpr char LED_STREAMING_PIN PROGMEM = 16;
+  static constexpr char LED_OFF PROGMEM = HIGH;
+  static constexpr char LED_ON PROGMEM = LOW;
 #endif // ESP32 / ESP8266
+
+#if defined(HARDWARE_PROTO_ESP8266)
+  static constexpr uint RADIO_RESET_PIN PROGMEM = 12;
+  static constexpr uint SI47XX_CHIP_VERSION = 13; // SI4713
+  static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x63;
+
+  static constexpr uint I2S_BCLK_PIN PROGMEM = 15;
+  static constexpr uint I2S_WCLK_PIN PROGMEM = 2;
+  static constexpr uint I2S_DATA_PIN PROGMEM = 3;
+
+  static constexpr uint I2C_SDA_PIN PROGMEM = 4;
+  static constexpr uint I2C_SCL_PIN PROGMEM = 5;
+
+#elif defined(HARDWARE_PROTO_ESP32)
+  static constexpr uint RADIO_RESET_PIN PROGMEM = 23;
+  static constexpr uint SI47XX_CHIP_VERSION = 13; // SI4713
+  static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x63;
+
+  static constexpr uint I2S_BCLK_PIN PROGMEM = 4;
+  static constexpr uint I2S_WCLK_PIN PROGMEM = 17;
+  static constexpr uint I2S_DATA_PIN PROGMEM = 16;
+
+  static constexpr uint I2C_SDA_PIN PROGMEM = 21;
+  static constexpr uint I2C_SCL_PIN PROGMEM = 22;
+
+#elif defined(HARDWARE_REV0)
+  static constexpr uint RADIO_RESET_PIN PROGMEM = 13;
+  static constexpr uint RADIO_CLK_PIN PROGMEM = 25;
+  static constexpr uint SI47XX_CHIP_VERSION = 21; // SI4721
+  static constexpr uint SI47xx_I2C_ADDR PROGMEM = 0x11;
+
+  static constexpr uint I2S_BCLK_PIN PROGMEM = 16;
+  static constexpr uint I2S_WCLK_PIN PROGMEM = 17;
+  static constexpr uint I2S_DATA_PIN PROGMEM = 18;
+
+  static constexpr uint I2C_SDA_PIN PROGMEM = 26;
+  static constexpr uint I2C_SCL_PIN PROGMEM = 27;
+
+  // static constexpr uint DAC_RESET_PIN PROGMEM = 21;
+  // static constexpr uint DAC_CLK_PIN PROGMEM = 34;
+
+  // static constexpr uint SPI_SCK_PIN PROGMEM = 32;
+  // static constexpr uint SPI_MOSI_PIN PROGMEM = 33;
+  // static constexpr uint DAC_SPI_CS PROGMEM = 35;
+
+#endif // Hardware versions
+
+  static void StartSi47xxClock(uint freq_hz);
+  static void InitLED(void);
+  static void SetLED(bool state);
+  static void Loop(void);
+
+private:
+  static constexpr uint32_t LED_MAX_BRIGHTNESS PROGMEM = 100;
+  static constexpr uint32_t LED_MIN_BRIGHTNESS PROGMEM = 5;
+  static bool LED_on_;
+};
 
 #endif // __BSP_H

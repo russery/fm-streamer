@@ -42,12 +42,11 @@ public:
   Stream_t GetCurrentStream(void);
 
 private:
-  const Stream_t StationList_[NUM_STATIONS] PROGMEM = {
+  const Stream_t StationList_[NUM_STATIONS] = {
       {.URL = "http://streams.kqed.org/kqedradio",
        .Name = "KQED San Francisco"},
       {.URL = "https://kunrstream.com:8000/live", .Name = "KUNR Reno"},
-      {.URL = "http://ais-edge16-jbmedia-nyc04.cdnstream.com/1power",
-       .Name = "PowerHitz"}};
+      {.URL = "http://live-mp3-128.kexp.org/", .Name = "KEXP Seattle"}};
   Config *cfg_;
   AsyncWebServer server_;
   bool config_changed_ = true;

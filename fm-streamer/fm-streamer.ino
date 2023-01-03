@@ -36,7 +36,7 @@ extern const char OTA_UPDATE_PWD[];
 constexpr char RDS_STATION_NAME[] = "FMSTREAM"; // 8 characters max
 
 FmRadio fm_radio;
-InternetStream stream(2048, &(fm_radio.i2s_output));
+InternetStream stream(10240, &(fm_radio.i2s_output));
 Config cfg(Webserver::NUM_STATIONS);
 Webserver webserver(&cfg);
 
@@ -48,8 +48,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\r\nFM Streamer Starting...\r\n\n");
 
-  pinMode(LED_STREAMING_PIN, OUTPUT);
-  digitalWrite(LED_STREAMING_PIN, LED_OFF);
+  BSP::InitLED();
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   cfg.Start();
@@ -57,26 +56,27 @@ void setup() {
   fm_radio.Start(RDS_STATION_NAME);
 
   ArduinoOTA.setHostname(Webserver::MDNS_ADDRESS);
-  ArduinoOTA.setPassword(OTA_UPDATE_PWD);
+  if (strlen(OTA_UPDATE_PWD) > 0)
+    ArduinoOTA.setPassword(OTA_UPDATE_PWD);
 
-  ArduinoOTA.onStart([]() { Serial.println("Start updating sketch"); })
-      .onEnd([]() { Serial.println("\nFinished Updating"); })
-      .onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-      })
-      .onError([](ota_error_t error) {
-        Serial.printf("Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR)
-          Serial.println("Auth Failed");
-        else if (error == OTA_BEGIN_ERROR)
-          Serial.println("Begin Failed");
-        else if (error == OTA_CONNECT_ERROR)
-          Serial.println("Connect Failed");
-        else if (error == OTA_RECEIVE_ERROR)
-          Serial.println("Receive Failed");
-        else if (error == OTA_END_ERROR)
-          Serial.println("End Failed");
-      });
+  ArduinoOTA.onStart([]() { Serial.println("Start updating sketch"); });
+  ArduinoOTA.onEnd([]() { Serial.println("\nFinished Updating"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR)
+      Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR)
+      Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR)
+      Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR)
+      Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR)
+      Serial.println("End Failed");
+  });
 }
 
 void loop() {
@@ -97,29 +97,31 @@ void loop() {
     }
     break;
   case ST_STREAM_START:
-    fm_radio.SetVolume(0); // Mute radio output while stream is starting up
+    fm_radio.SetI2SInputEnable(false); // Disable I2S input
     stream.OpenUrl(webserver.GetCurrentStream().URL);
     fm_radio.SetRdsText(webserver.GetCurrentStream().Name);
-    digitalWrite(LED_STREAMING_PIN, LED_OFF);
+    BSP::SetLED(false);
     state = ST_STREAM_CONNECTING;
     stream_start_time_ms = millis();
     break;
   case ST_STREAM_CONNECTING:
     if (stream.Loop()) {
       state = ST_STREAMING;
+      fm_radio.SetI2SInputEnable(true); // Enable I2S input
     } else if (millis() - stream_start_time_ms > 30000) {
       resetFunc(); // Timed out trying to connect, try resetting
     }
     break;
   case ST_STREAMING:
     static unsigned long last_autovol_ms = 0;
-    if ((cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 5000)) {
+    if ((cfg.GetAutoVolume()) && (millis() - last_autovol_ms > 1000)) {
       cfg.SetVolume(fm_radio.GetVolume()); // Update value in config
       last_autovol_ms = millis();
       fm_radio.DoAutoSetVolume();
     }
-    digitalWrite(LED_STREAMING_PIN, LED_ON);
+    BSP::SetLED(true);
     if (!stream.Loop()) {
+      stream.Flush();
       state = ST_STREAM_START;
     }
     break;
@@ -169,8 +171,8 @@ void loop() {
     static uint previous_station = cfg.GetStation();
     uint curr_station = cfg.GetStation();
     if (curr_station != previous_station) {
-      previous_station = curr_station; // User changed station
-      fm_radio.SetVolume(0); // Mute radio output while we close out the stream
+      previous_station = curr_station;   // User changed station
+      fm_radio.SetI2SInputEnable(false); // disable I2S input
       stream.Flush();
       state = ST_STREAM_START;
     }
@@ -182,6 +184,7 @@ void loop() {
   }
 
   ArduinoOTA.handle();
+  BSP::Loop();
 
   yield(); // Make sure WiFi can do its thing.
 }

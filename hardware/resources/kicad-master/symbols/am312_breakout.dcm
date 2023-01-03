@@ -1,0 +1,8 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP AM312_breakout
+D PIR motion sensor
+K sensor, motion
+$ENDCMP
+#
+#End Doc Library
